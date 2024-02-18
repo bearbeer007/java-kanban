@@ -4,18 +4,40 @@ import ru.yandex.app.model.Task;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 
-// для хранения истории просмотров задач в памяти
 public class InMemoryHistoryManager implements HistoryManager {
-    // список просмотров
-    Node history = null;
-    // ссылки на элементы истории по id
-    HashMap<Integer, Node> indexTask = new HashMap<>();
+    private Node first = null;
+    private Node last = null;
+    private final HashMap<Integer, Node> indexTask = new HashMap<>();
+
+    private static class Node {
+        Task value;
+        Node prevTask;
+        Node nextTask;
+
+        Node(Task value) {
+            this.value = value;
+        }
+
+        Node getPrev() {
+            return prevTask;
+        }
+
+        Node getNext() {
+            return nextTask;
+        }
+
+        void setPrev(Node prevTask) {
+            this.prevTask = prevTask;
+        }
+
+        void setNext(Node nextTask) {
+            this.nextTask = nextTask;
+        }
+    }
 
     @Override
-    // добавить задачу
     public void add(Task task) {
         if (task == null) {
             return;
@@ -26,7 +48,6 @@ public class InMemoryHistoryManager implements HistoryManager {
     }
 
     @Override
-    // Список просмотренных задач
     public List<Task> getHistory() {
         return getTasks();
     }
@@ -40,51 +61,53 @@ public class InMemoryHistoryManager implements HistoryManager {
         }
     }
 
-    /**
-     * добавить запись в конец списка
-     */
-    private Node linkLast(Task task) {
-        if (history == null) {
-            history = new Node(task);
-            history.setPrev(history);
-            history.setNext(history);
-            return history;
-        } else {
-            Node node = new Node(task);
-            node.setNext(history);
-            node.setPrev(history.getPrev());
-            history.getPrev().setNext(node);
-            history.setPrev(node);
-            return node;
-        }
+
+    @Override
+    public void removeAllTask() {
+        indexTask.clear();
     }
-    /**
-     * получить историю в виде списка задач
-     */
+
+    private Node linkLast(Task task) {
+        Node node = new Node(task);
+        if (first == null) {
+            first = node;
+            last = node;
+        } else {
+            node.setPrev(last);
+            last.setNext(node);
+            last = node;
+        }
+        return node;
+    }
+
     private List<Task> getTasks() {
         ArrayList<Task> res = new ArrayList<>();
-        if (history != null) {
-            Node node = history;
-            do {
-                res.add(node.getValue());
-                node = node.getNext();
-            } while (node != history);
+        Node node = first;
+        while (node != null) {
+            res.add(node.value);
+            node = node.getNext();
         }
         return res;
     }
-    /**
-     * удалить узел задачи из списка
-     */
+
     private void removeNode(Node node) {
         if (node == null) return;
-        if (node == history) {  // это первый элемент
-            // поправим ссылку на первый элемент списка
-            history = (history.getNext() != history) ? history.getNext() : null;
+        if (node == first) {
+            first = node.getNext();
         }
-        node.getPrev().setNext(node.getNext());
-        node.getNext().setPrev(node.getPrev());
+        if (node == last) {
+            last = node.getPrev();
+        }
+        Node prev = node.getPrev();
+        Node next = node.getNext();
+        if (prev != null) {
+            prev.setNext(next);
+        }
+        if (next != null) {
+            next.setPrev(prev);
+        }
         node.setPrev(null);
         node.setNext(null);
-        node.setValue(null);
+        node.value = null;
     }
 }

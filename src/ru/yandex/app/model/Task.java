@@ -12,8 +12,7 @@ public class Task {
     protected TaskStatus taskStatus = NEW;
 
     //конструкторы
-    public Task() {
-    }
+
 
     public Task(String name, String description) {
         this.name = name;

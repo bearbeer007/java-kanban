@@ -5,8 +5,7 @@ import java.util.Objects;
 public class Subtask extends Task {
     private int epicId;
 
-    public Subtask() {
-    }
+
 
     public Subtask(String name, String description) {
         super(name, description);
@@ -27,7 +26,7 @@ public class Subtask extends Task {
 
     @Override
     public TaskType getTaskType() {
-        return TaskType.SUB_TASK;
+        return TaskType.SUBTASK;
     }
 
     @Override
