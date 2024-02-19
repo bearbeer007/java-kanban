@@ -237,7 +237,7 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void removeAllTask() {
         taskMap.clear();
-        historyManagers.removeAllTask();
+
     }
 
     @Override

@@ -7,8 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 
 public class InMemoryHistoryManager implements HistoryManager {
-    private Node first = null;
-    private Node last = null;
+    private Node first;
+    private Node last;
     private final HashMap<Integer, Node> indexTask = new HashMap<>();
 
     private static class Node {
@@ -18,22 +18,6 @@ public class InMemoryHistoryManager implements HistoryManager {
 
         Node(Task value) {
             this.value = value;
-        }
-
-        Node getPrev() {
-            return prevTask;
-        }
-
-        Node getNext() {
-            return nextTask;
-        }
-
-        void setPrev(Node prevTask) {
-            this.prevTask = prevTask;
-        }
-
-        void setNext(Node nextTask) {
-            this.nextTask = nextTask;
         }
     }
 
@@ -61,20 +45,14 @@ public class InMemoryHistoryManager implements HistoryManager {
         }
     }
 
-
-    @Override
-    public void removeAllTask() {
-        indexTask.clear();
-    }
-
     private Node linkLast(Task task) {
         Node node = new Node(task);
         if (first == null) {
             first = node;
             last = node;
         } else {
-            node.setPrev(last);
-            last.setNext(node);
+            node.prevTask = last;
+            last.nextTask = node;
             last = node;
         }
         return node;
@@ -85,7 +63,7 @@ public class InMemoryHistoryManager implements HistoryManager {
         Node node = first;
         while (node != null) {
             res.add(node.value);
-            node = node.getNext();
+            node = node.nextTask;
         }
         return res;
     }
@@ -93,21 +71,18 @@ public class InMemoryHistoryManager implements HistoryManager {
     private void removeNode(Node node) {
         if (node == null) return;
         if (node == first) {
-            first = node.getNext();
+            first = node.nextTask;
         }
         if (node == last) {
-            last = node.getPrev();
+            last = node.prevTask;
         }
-        Node prev = node.getPrev();
-        Node next = node.getNext();
+        Node prev = node.prevTask;
+        Node next = node.nextTask;
         if (prev != null) {
-            prev.setNext(next);
+            prev.nextTask = next;
         }
         if (next != null) {
-            next.setPrev(prev);
+            next.prevTask = prev;
         }
-        node.setPrev(null);
-        node.setNext(null);
-        node.value = null;
     }
 }

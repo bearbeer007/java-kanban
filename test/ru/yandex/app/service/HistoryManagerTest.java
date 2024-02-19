@@ -29,9 +29,9 @@ public class HistoryManagerTest {
 
     @Test
     public void testAddAndRemoveTasks() {
-        Task task1 = new Task("Task 1","Description 1", TaskStatus.NEW);
-        Task task2 = new Task("Task 2","Description 2", TaskStatus.IN_PROGRESS);
-        Task task3 = new Task("Task 3","Description 3", TaskStatus.DONE);
+        Task task1 = new Task("Task 1", "Description 1", TaskStatus.NEW);
+        Task task2 = new Task("Task 2", "Description 2", TaskStatus.IN_PROGRESS);
+        Task task3 = new Task("Task 3", "Description 3", TaskStatus.DONE);
 
         historyManager.add(task1);
         historyManager.add(task2);
@@ -41,14 +41,22 @@ public class HistoryManagerTest {
 
         // Удаляем задачу из начала истории
         historyManager.remove(task1.getId());
-        assertEquals(2, historyManager.getHistory().size());
+        assertAll(
+                () -> assertEquals(2, historyManager.getHistory().size()),
+                () -> assertEquals(task2, historyManager.getHistory().get(0)),
+                () -> assertEquals(task3, historyManager.getHistory().get(1))
+        );
 
         // Удаляем задачу из середины истории
         historyManager.remove(task2.getId());
-        assertEquals(1, historyManager.getHistory().size());
+        assertAll(
+                () -> assertEquals(1, historyManager.getHistory().size()),
+                () -> assertEquals(task3, historyManager.getHistory().get(0))
+        );
 
         // Удаляем задачу из конца истории
         historyManager.remove(task3.getId());
         assertEquals(0, historyManager.getHistory().size());
     }
+
 }

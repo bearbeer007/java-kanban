@@ -6,10 +6,8 @@ import java.util.List;
 public class Epic extends Task {
     private final List<Integer> subtaskIds = new ArrayList<>();
 
-
-
     public Epic(String name, String description) {
-        super(name, description);
+        super(name, description, TaskStatus.NEW);
     }
 
     public Epic(String name, String description, List<Integer> subtaskIds) {
