@@ -15,12 +15,12 @@ import static ru.yandex.app.model.TaskStatus.*;
 // Менеджер задач для хранения задач в памяти
 public class InMemoryTaskManager implements TaskManager {
 
-    private final HistoryManager historyManagers = Managers.getDefaultHistory();
+    protected final HistoryManager historyManagers = Managers.getDefaultHistory();
     private static int id = 0;
 
-    private Map<Integer, Task> taskMap = new HashMap<>();
-    private Map<Integer, Epic> epicMap = new HashMap<>();
-    private Map<Integer, Subtask> subtaskMap = new HashMap<>();
+    protected Map<Integer, Task> taskMap = new HashMap<>();
+    protected Map<Integer, Epic> epicMap = new HashMap<>();
+    protected Map<Integer, Subtask> subtaskMap = new HashMap<>();
 
     private int getNextId() {
         return id++;
