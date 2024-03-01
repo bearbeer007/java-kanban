@@ -1,52 +1,56 @@
-package test;
+package ru.yandex.app.service;
 
-import managers.FileBackedTaskManager;
-import managers.TaskManager;
-import models.Epic;
-import models.Subtask;
-import models.Task;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.yandex.app.model.Epic;
+import ru.yandex.app.model.Subtask;
+import ru.yandex.app.model.Task;
+import ru.yandex.app.service.FileBackedTaskManager;
+import ru.yandex.app.service.TaskManager;
 
 import java.io.File;
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FileBackedTaskManagerTest {
-    TaskManager fileBackedTaskManager;
-    File tmpFile;
 
-    {
+    private TaskManager fileBackedTaskManager;
+    private File tmpFile;
+
+    @BeforeEach
+    public void setUp() {
         try {
             tmpFile = File.createTempFile("data", ".csv");
+            fileBackedTaskManager = new FileBackedTaskManager(tmpFile);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to create temporary file", e);
         }
     }
 
-
-    @BeforeEach
-    public void createFileBackTaskManager() {
-        fileBackedTaskManager = new FileBackedTaskManager(tmpFile);
+    @AfterEach
+    public void tearDown() {
+        if (tmpFile != null && tmpFile.exists()) {
+            tmpFile.delete();
+        }
     }
 
-
-    public Task createTaskForTests() {
+    private Task createTaskForTests() {
         Task task = new Task("Task name", "Task description");
-        fileBackedTaskManager.createTask(task);
+        fileBackedTaskManager.addTask(task);
         return task;
     }
 
-    public Epic createEpicForTests() {
+    private Epic createEpicForTests() {
         Epic epic = new Epic("Epic name", "Epic description");
-        fileBackedTaskManager.createEpic(epic);
+        fileBackedTaskManager.addEpic(epic);
         return epic;
     }
 
-    public Subtask createSubtaskForTests(Integer epicId) {
+    private Subtask createSubtaskForTests(Integer epicId) {
         Subtask subtask = new Subtask("Subtask name", "Subtask description", epicId);
-        fileBackedTaskManager.createSubtask(subtask);
+        fileBackedTaskManager.addSubtask(subtask);
         return subtask;
     }
 
@@ -66,25 +70,25 @@ public class FileBackedTaskManagerTest {
         try {
             newFBTM = FileBackedTaskManager.loadFromFile(tmpFile);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to load FileBackedTaskManager from file", e);
         }
 
         assertEquals(1, newFBTM.getAllTasks().size());
         assertEquals(2, newFBTM.getAllSubtasks().size());
         assertEquals(1, newFBTM.getAllEpics().size());
         assertEquals(4, newFBTM.getHistory().size());
-
     }
 
     @Test
     public void shouldReturnEmptyHistoryAndDataAfterDeleting() {
         fileBackedTaskManager.deleteAllTasks();
         fileBackedTaskManager.deleteAllEpics();
+
         TaskManager newFBTM;
         try {
             newFBTM = FileBackedTaskManager.loadFromFile(tmpFile);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to load FileBackedTaskManager from file", e);
         }
 
         assertEquals(0, newFBTM.getAllTasks().size());
@@ -92,8 +96,4 @@ public class FileBackedTaskManagerTest {
         assertEquals(0, newFBTM.getAllEpics().size());
         assertEquals(0, newFBTM.getHistory().size());
     }
-
-
 }
-
-

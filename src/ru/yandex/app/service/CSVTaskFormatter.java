@@ -17,11 +17,12 @@ public class CSVTaskFormatter {
         String description = task.getDescription();
 
         String taskString = String.format("%s,%s,%s,%s,%s", id, type, name, status, description);
-        if (task instanceof Subtask) {
-            Subtask subtask = (Subtask) task;
-            taskString += ",";
-            taskString += subtask.getEpicId();
 
+        if (task.getTaskType() == TaskType.SUBTASK || task.getTaskType() == TaskType.EPIC) {
+            taskString += ",";
+            if (task.getTaskType() == TaskType.SUBTASK) {
+                taskString += ((Subtask) task).getEpicId();
+            }
         }
         return taskString;
     }
@@ -50,9 +51,10 @@ public class CSVTaskFormatter {
                 subtask.setId(id);
                 subtask.setTaskStatus(status);
                 return subtask;
-
+            default:
+                throw new IllegalArgumentException("Неподдерживаемый task type" + taskType);
         }
-        return null;
+
     }
 
     public static String historyToString(HistoryManager historyManager) {
@@ -74,8 +76,7 @@ public class CSVTaskFormatter {
                 historyList.add(Integer.parseInt(taskId));
             }
             Collections.reverse(historyList);
-            return historyList;
         }
-        return null;
+        return historyList;
     }
 }

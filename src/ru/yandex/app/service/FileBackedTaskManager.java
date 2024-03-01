@@ -4,6 +4,7 @@ import ru.yandex.app.exceptions.ManagerSaveException;
 import ru.yandex.app.model.Epic;
 import ru.yandex.app.model.Subtask;
 import ru.yandex.app.model.Task;
+import ru.yandex.app.model.TaskType;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -64,9 +65,9 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         for (String line : lines) {
             if (!line.isBlank() && !line.equals("\n")) {
                 Task task = CSVTaskFormatter.fromString(line);
-                if (task instanceof Subtask) {
+                if (task.getTaskType() == TaskType.SUBTASK) {
                     manager.subtaskMap.put(task.getId(), (Subtask) task);
-                } else if (task instanceof Epic) {
+                } else if (task.getTaskType() == TaskType.EPIC) {
                     manager.epicMap.put(task.getId(), (Epic) task);
                 } else if (task != null) {
                     manager.taskMap.put(task.getId(), task);
@@ -168,9 +169,6 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         save();
     }
 
-    public Map<Integer, Epic> getEpics() {
-        return epicMap;
-    }
 
     public static void main(String[] args) throws IOException {
         FileBackedTaskManager fileManager = new FileBackedTaskManager(new File("saveTasks2.csv"));
@@ -182,13 +180,11 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         fileManager.getEpic(2);
         fileManager.getSubtask(3);
         System.out.println(fileManager.getAllTasks());
-        System.out.println(fileManager.getEpics());
         System.out.println(fileManager.getAllSubtasks());
         System.out.println(fileManager.getHistory());
         System.out.println("\n\n" + "new" + "\n\n");
         FileBackedTaskManager fileBackedTasksManager = loadFromFile(new File("saveTasks2.csv"));
         System.out.println(fileBackedTasksManager.getAllTasks());
-        System.out.println(fileBackedTasksManager.getEpics());
         System.out.println(fileBackedTasksManager.getAllSubtasks());
         System.out.println(fileBackedTasksManager.getHistory());
     }
