@@ -16,7 +16,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-public class FileBackedTaskManager extends InMemoryTaskManager {
+public class FileBackedTaskManager extends InMemoryTaskManager  {
     private final File fileForSaveData;
 
     public FileBackedTaskManager(File file) {
@@ -24,7 +24,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
 
-    private void save() {
+    private void save()  {
 
         try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(fileForSaveData))) {
             bufferedWriter.write("id,type,name,status,description,epic\n");
@@ -48,46 +48,74 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
 
-    public static FileBackedTaskManager loadFromFile(File file) throws IOException {
+    public static FileBackedTaskManager loadFromFile(File file) {
         FileBackedTaskManager manager = new FileBackedTaskManager(file);
 
-        List<String> lines = Files.readAllLines(Path.of(file.toURI()), StandardCharsets.UTF_8);
-        lines.remove(lines.get(0));
+        try {
+            List<String> lines = Files.readAllLines(Path.of(file.toURI()), StandardCharsets.UTF_8);
+            lines.remove(lines.get(0));
 
-        if (lines.isEmpty()) {
-            return manager;
-        }
+            if (lines.isEmpty()) {
+                return manager;
+            }
 
-        int lastElemNum = lines.size() - 1;
-        String history = lines.get(lastElemNum);
-        lines.remove(lastElemNum);
+            int lastElemNum = lines.size() - 1;
+            String history = lines.get(lastElemNum);
+            lines.remove(lastElemNum);
 
-        for (String line : lines) {
-            if (!line.isBlank() && !line.equals("\n")) {
-                Task task = CSVTaskFormatter.fromString(line);
-                if (task.getTaskType() == TaskType.SUBTASK) {
-                    manager.subtaskMap.put(task.getId(), (Subtask) task);
-                } else if (task.getTaskType() == TaskType.EPIC) {
-                    manager.epicMap.put(task.getId(), (Epic) task);
-                } else if (task != null) {
-                    manager.taskMap.put(task.getId(), task);
+            for (String line : lines) {
+                if (!line.isBlank() && !line.equals("\n")) {
+                    Task task = CSVTaskFormatter.fromString(line);
+                    if (task.getTaskType() == TaskType.SUBTASK) {
+                        manager.subtaskMap.put(task.getId(), (Subtask) task);
+                    } else if (task.getTaskType() == TaskType.EPIC) {
+                        manager.epicMap.put(task.getId(), (Epic) task);
+                    } else if (task != null) {
+                        manager.taskMap.put(task.getId(), task);
+                    }
                 }
             }
-        }
-        if (CSVTaskFormatter.historyFromString(history) != null) {
-            for (Integer id : CSVTaskFormatter.historyFromString(history)) {
-                if (manager.taskMap.containsKey(id)) {
-                    manager.historyManagers.add(manager.taskMap.get(id));
-                } else if (manager.epicMap.containsKey(id)) {
-                    manager.historyManagers.add(manager.epicMap.get(id));
-                } else {
-                    manager.historyManagers.add(manager.subtaskMap.get(id));
+
+            if (CSVTaskFormatter.historyFromString(history) != null) {
+                for (Integer id : CSVTaskFormatter.historyFromString(history)) {
+                    if (manager.taskMap.containsKey(id)) {
+                        manager.historyManagers.add(manager.taskMap.get(id));
+                    } else if (manager.epicMap.containsKey(id)) {
+                        manager.historyManagers.add(manager.epicMap.get(id));
+                    } else {
+                        manager.historyManagers.add(manager.subtaskMap.get(id));
+                    }
                 }
             }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load FileBackedTaskManager from file", e);
         }
+
         return manager;
     }
 
+
+
+    @Override
+    public Task getTask(Integer id) {
+        Task task = super.getTask(id);
+        save();
+        return task;
+    }
+
+    @Override
+    public Epic getEpic(Integer id) {
+        Epic epic = super.getEpic(id);
+        save();
+        return epic;
+    }
+
+    @Override
+    public Subtask getSubtask(Integer id) {
+        Subtask subtask = super.getSubtask(id);
+        save();
+        return subtask;
+    }
 
     @Override
     public int addTask(Task task) {

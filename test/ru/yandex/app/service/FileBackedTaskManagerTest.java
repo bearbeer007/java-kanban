@@ -73,10 +73,10 @@ public class FileBackedTaskManagerTest {
             throw new RuntimeException("Failed to load FileBackedTaskManager from file", e);
         }
 
-        assertEquals(1, newFBTM.getAllTasks().size());
-        assertEquals(2, newFBTM.getAllSubtasks().size());
-        assertEquals(1, newFBTM.getAllEpics().size());
-        assertEquals(4, newFBTM.getHistory().size());
+        assertEquals(fileBackedTaskManager.getAllTasks(), newFBTM.getAllTasks());
+        assertEquals(fileBackedTaskManager.getAllSubtasks(), newFBTM.getAllSubtasks());
+        assertEquals(fileBackedTaskManager.getAllEpics(), newFBTM.getAllEpics());
+        assertEquals(fileBackedTaskManager.getHistory(), newFBTM.getHistory());
     }
 
     @Test

@@ -18,7 +18,7 @@ public class CSVTaskFormatter {
 
         String taskString = String.format("%s,%s,%s,%s,%s", id, type, name, status, description);
 
-        if (task.getTaskType() == TaskType.SUBTASK || task.getTaskType() == TaskType.EPIC) {
+        if (task.getTaskType() == TaskType.SUBTASK) {
             taskString += ",";
             if (task.getTaskType() == TaskType.SUBTASK) {
                 taskString += ((Subtask) task).getEpicId();
