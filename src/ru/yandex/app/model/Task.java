@@ -1,15 +1,23 @@
 package ru.yandex.app.model;
 
 import java.util.Objects;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Objects;
+import ru.yandex.app.model.Constants;
 
 import static ru.yandex.app.model.TaskStatus.NEW;
 
 public class Task {
 
-    protected Integer id = 0;//идентификатор задачи
+    protected int id;//идентификатор задачи
     protected String name;//название задачи
     protected String description;//описание задачи
     protected TaskStatus taskStatus = NEW;
+    protected TaskStatus status;
+    protected Duration duration; //Продолжительность в минутах
+    protected LocalDateTime startTime; //Время начала задачи
+    protected LocalDateTime endTime;
 
     //конструкторы
 
@@ -17,15 +25,29 @@ public class Task {
     public Task(String name, String description) {
         this.name = name;
         this.description = description;
+        status = taskStatus; //Как только задача создана, она новая.
     }
 
-    public Task(String name, String description, TaskStatus taskStatus) {
+    public Task(String name, String description, long minutes, String startTime) {
         this.name = name;
         this.description = description;
-        this.taskStatus = taskStatus;
+        status = taskStatus;
+        duration = Duration.ofMinutes(minutes);
+        this.startTime = LocalDateTime.parse(startTime, Constants.FORMATTER);
     }
 
     //методы get и set
+
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+    public LocalDateTime getEndTime() {
+        if (startTime == null | duration == null) return null;
+        endTime = startTime.plus(duration);
+        return endTime;
+    }
+
     public String getName() {
         return name;
     }
@@ -80,10 +102,12 @@ public class Task {
 
     @Override
     public String toString() {
-        return "Задача{" +
-                "название='" + name + '\'' +
-                ", описание='" + description + '\'' +
-                ", id='" + id + '\'' +
-                ", статус='" + taskStatus + '\'';
+        return id + "," + "TASK," + name + "," + status + "," + description + ","
+                + ((duration != null) ? duration.toMinutes() : duration) + ","
+                + ((startTime != null) ? startTime.format(Constants.FORMATTER) + "," + getEndTime().format(Constants.FORMATTER)
+                : startTime + "," + getEndTime());
     }
+
+
+
 }

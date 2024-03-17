@@ -6,8 +6,14 @@ import ru.yandex.app.model.Task;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public interface TaskManager {
+
+    void createEpic(Epic epic);
+
+    Optional<Epic> receiveOneEpic(int epicId);
+
     /**
      * История просмотров задач, вернем последние 10 просмотренных задач
      */
@@ -27,6 +33,13 @@ public interface TaskManager {
      * добавим подзадачу
      */
     int addSubtask(Subtask subtask);
+
+    void addSubTaskInEpic(int epicId, Subtask subtask);
+
+    Optional<Subtask> receiveSubtasksUseID(int subtaskId);
+
+    void deleteUseID(int id);
+    Optional<Task> receiveOneTask(int id);
 
     /**
      * методы обновления

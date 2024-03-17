@@ -1,6 +1,8 @@
 package ru.yandex.app.model;
 
 import java.util.Objects;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 public class Subtask extends Task {
     private int epicId;
@@ -9,6 +11,12 @@ public class Subtask extends Task {
 
     public Subtask(String name, String description) {
         super(name, description);
+        status = TaskStatus.NEW;
+    }
+
+    public Subtask(String name, String description, long minutes, String startTime) {
+        super(name, description, minutes, startTime);
+        status = TaskStatus.NEW;
     }
 
     public Subtask(String name, String description, int epicId) {
@@ -45,11 +53,10 @@ public class Subtask extends Task {
 
     @Override
     public String toString() {
-        return "Подзадача (Subtask) {" +
-                "название='" + name + '\'' +
-                ", описание='" + description + '\'' +
-                ", id='" + id + '\'' +
-                ", статус='" + taskStatus + '\'' +
-                ", id эпика='" + epicId + '}' + '\'';
+        return id + "," + "SUBTASK," + name + "," + status + "," + description + ","
+                + ((duration != null) ? duration.toMinutes() : duration) + ","
+                + ((startTime != null) ? startTime.format(Constants.FORMATTER) + ","
+                + getEndTime().format(Constants.FORMATTER) :
+                startTime + "," + getEndTime());
     }
 }

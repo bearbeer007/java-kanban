@@ -12,6 +12,8 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
+
+
         List<Task> history;
         Task task1 = new Task("task 1", "пример простой задачи 1");
         Task task2 = new Task("task 2", "пример простой задачи 2");
@@ -20,6 +22,16 @@ public class Main {
         //HistoryManager history = Managers.getDefaultHistory();
         int taskId1 = manager.addTask(task1);
         int taskId2 = manager.addTask(task2);
+
+
+        manager.createEpic(new Epic("Устроить праздник", "Устраиваем званный ужин")); //1
+        manager.addSubTaskInEpic(1, new Subtask("Сходить в магазин", "Купить макароны", 100L, "01.03.2024 12:30"));//2
+        manager.addSubTaskInEpic(1, new Subtask("Вернутся домой", "Там будем готовить", 320L, "01.03.2024 12:30")); //3
+        manager.addSubTaskInEpic(1, new Subtask("Готовим ужин", "Желательно вкусный", 470L, "14.05.2024 12:30")); //4
+        manager.addSubTaskInEpic(1, new Subtask("Зовем гостей", "Ждем гостей", 91L, "12.02.2024 12:30")); //5
+
+        manager.createEpic(new Epic("Доехать до дома", "Едем домой")); //6
+
 
         manager.getTask(taskId1);
         manager.getTask(taskId2);
