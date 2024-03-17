@@ -5,10 +5,9 @@ import ru.yandex.app.model.Subtask;
 import ru.yandex.app.model.Task;
 import ru.yandex.app.model.TaskStatus;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import java.util.stream.Collectors;
 
 import static ru.yandex.app.model.TaskStatus.*;
 
@@ -18,12 +17,27 @@ public class InMemoryTaskManager implements TaskManager {
     protected final HistoryManager historyManagers = Managers.getDefaultHistory();
     private static int id = 0;
 
-    protected Map<Integer, Task> taskMap = new HashMap<>();
-    protected Map<Integer, Epic> epicMap = new HashMap<>();
-    protected Map<Integer, Subtask> subtaskMap = new HashMap<>();
+    protected HashMap<Integer, Task> taskMap = new HashMap<>();
+    protected HashMap<Integer, Epic> epicMap = new HashMap<>();
+    protected HashMap<Integer, Subtask> subtaskMap = new HashMap<>();
+
+    protected Set<Task> prioritizedTasks = new TreeSet<>(Comparator.comparing(Task::getStartTime,
+            Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(Task::getId));
 
     private int getNextId() {
         return id++;
+    }
+
+    public HashMap<Integer, Epic> getEpicMap() {
+        return epicMap;
+    }
+
+    public HashMap<Integer, Subtask> getSubtaskMap() {
+        return subtaskMap;
+    }
+
+    public HashMap<Integer, Task> getTaskMap() {
+        return taskMap;
     }
 
     @Override
@@ -38,6 +52,95 @@ public class InMemoryTaskManager implements TaskManager {
         return task;
     }
 
+    public List<Task> getPrioritizedTasks() {
+        return List.copyOf(prioritizedTasks);
+    }
+
+    //Метод поиска пересечений задач
+    public boolean isCrossingOther(Task task) {
+        //Если старт не задан, то пересечений не будет
+        if (task.getStartTime() == null) {
+            return false;
+        }
+
+        for (Task task1 : getPrioritizedTasks()) {
+            if (task.getEndTime().isBefore(task1.getEndTime())
+                    && task.getStartTime().isAfter(task1.getStartTime())) {
+                return true;
+            }
+            if (task.getEndTime().isAfter(task1.getEndTime())
+                    && task.getStartTime().isBefore(task1.getStartTime())) {
+                return true;
+            }
+            if (task.getStartTime().equals(task1.getStartTime())
+                    || task.getEndTime().equals(task1.getEndTime())) {
+                return true;
+            }
+        }
+        return false; //Пересечений нет
+    }
+    public int getId() {
+        return id;
+    }
+    public void createEpic(Epic epic) {
+        id += 1;
+        epic.setId(id);
+        epicMap.put(id, epic); //Эпик в мапу эпиков
+        epic.solveStartTimeAndDuration(); //Расчет времени при создании Эпика
+    }
+
+    public Optional<Epic> receiveOneEpic(int epicId) {
+        Optional<Epic> particularEpic = epicMap.values().stream().filter(epic -> epic.getId() == epicId).findFirst();
+        if (particularEpic.isPresent()) {
+            historyManagers.add(epicMap.get(epicId)); //Добавление вызванной задачи в историю
+            return particularEpic;
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public void addSubTaskInEpic(int epicId, Subtask subtask) {
+        if (isCrossingOther(subtask)) { //Если есть пересечение, задача не добавляется
+            return;
+        }
+
+        Epic epic = epicMap.get(epicId); // Получение объекта эпика по ID
+        if (epic != null) {
+            id += 1;
+            subtask.setId(id);
+            epic.getSubtasks().add(subtask); // Подзадач в список подзадач эпика
+            subtaskMap.put(id, subtask); // Подазадча в мапу подзадач
+            epic.solveStartTimeAndDuration(); //Пересчет времени при добавлении подзадачи
+        }
+        if (subtask.getStartTime() != null) {
+            prioritizedTasks.add(subtask);}}
+
+
+    public Optional<Subtask> receiveSubtasksUseID(int subtaskId) {
+        Optional<Subtask> particularSubtask = subtaskMap.values().stream().filter(subtask -> subtask.getId() == subtaskId).findFirst();
+        if (particularSubtask.isPresent()) {
+            historyManagers.add(subtaskMap.get(subtaskId));
+            return particularSubtask;
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public void deleteUseID(int id) {
+        if (taskMap.containsKey(id)) {
+            prioritizedTasks.remove(taskMap.get(id));prioritizedTasks.remove(taskMap.get(id));
+            taskMap.remove(id, taskMap.get(id));
+            historyManagers.remove(id); //Удаление элемента из истории
+        }
+    }
+
+    @Override
+    public Optional<Task> receiveOneTask(int id) {
+        return Optional.empty();
+    }
+
+    //Добавление вызванной задачи в историю
     @Override
     public List<Task> getAllTasks() {
         return new ArrayList<>(taskMap.values());
@@ -236,6 +339,10 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void removeAllTask() {
+        prioritizedTasks = prioritizedTasks
+                .stream()
+                .filter(task -> task.getClass() != Task.class) //Если объект в коллекции Task, удаляется, тк удаляются все Task
+                .collect(Collectors.toSet());
         taskMap.clear();
 
     }
