@@ -5,6 +5,8 @@ import ru.yandex.app.model.Subtask;
 import ru.yandex.app.model.Task;
 import ru.yandex.app.model.TaskStatus;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import java.util.stream.Collectors;
@@ -28,17 +30,30 @@ public class InMemoryTaskManager implements TaskManager {
         return id++;
     }
 
-    public HashMap<Integer, Epic> getEpicMap() {
-        return epicMap;
+    private void solveStartTimeAndDuration(Epic epic) {
+        if (epic.getSubtasks().isEmpty()) {
+            epic.setDuration(null);
+            epic.setStartTime(null);
+            epic.getEndTime();
+            return;
+        }
+
+        Duration epicDuration = Duration.ofMinutes(0);
+        LocalDateTime epicStartTime = epic.getSubtasks().stream().min(Comparator.comparing(Subtask::getStartTime)).get().getStartTime();
+
+        for (Subtask subtask : epic.getSubtasks()) {
+            if (subtask.getDuration() != null) {
+                epicDuration = epicDuration.plus(subtask.getDuration());
+            }
+        }
+
+        LocalDateTime epicEndTime = epicStartTime.plus(epicDuration);
+
+        epic.setDuration(epicDuration);
+        epic.setStartTime(epicStartTime);
+        epic.setEndTime(epicEndTime);
     }
 
-    public HashMap<Integer, Subtask> getSubtaskMap() {
-        return subtaskMap;
-    }
-
-    public HashMap<Integer, Task> getTaskMap() {
-        return taskMap;
-    }
 
     @Override
     public List<Task> getHistory() {
@@ -56,66 +71,54 @@ public class InMemoryTaskManager implements TaskManager {
         return List.copyOf(prioritizedTasks);
     }
 
-    //Метод поиска пересечений задач
     public boolean isCrossingOther(Task task) {
-        //Если старт не задан, то пересечений не будет
         if (task.getStartTime() == null) {
             return false;
         }
 
         for (Task task1 : getPrioritizedTasks()) {
-            if (task.getEndTime().isBefore(task1.getEndTime())
-                    && task.getStartTime().isAfter(task1.getStartTime())) {
-                return true;
-            }
-            if (task.getEndTime().isAfter(task1.getEndTime())
-                    && task.getStartTime().isBefore(task1.getStartTime())) {
-                return true;
-            }
-            if (task.getStartTime().equals(task1.getStartTime())
-                    || task.getEndTime().equals(task1.getEndTime())) {
+            if (!(task.getStartTime().isAfter(task1.getEndTime()) || task.getEndTime().isBefore(task1.getStartTime()))) {
                 return true;
             }
         }
-        return false; //Пересечений нет
-    }
-    public int getId() {
-        return id;
-    }
-    public void createEpic(Epic epic) {
-        id += 1;
-        epic.setId(id);
-        epicMap.put(id, epic); //Эпик в мапу эпиков
-        epic.solveStartTimeAndDuration(); //Расчет времени при создании Эпика
+        return false;
     }
 
+    @Override
+    public void createEpic(Epic epic) {
+
+    }
+
+    @Override
     public Optional<Epic> receiveOneEpic(int epicId) {
         Optional<Epic> particularEpic = epicMap.values().stream().filter(epic -> epic.getId() == epicId).findFirst();
         if (particularEpic.isPresent()) {
-            historyManagers.add(epicMap.get(epicId)); //Добавление вызванной задачи в историю
+            historyManagers.add(epicMap.get(epicId));
             return particularEpic;
         } else {
             return Optional.empty();
         }
     }
 
+    @Override
     public void addSubTaskInEpic(int epicId, Subtask subtask) {
-        if (isCrossingOther(subtask)) { //Если есть пересечение, задача не добавляется
+        if (isCrossingOther(subtask)) {
             return;
         }
 
-        Epic epic = epicMap.get(epicId); // Получение объекта эпика по ID
+        Epic epic = epicMap.get(epicId);
         if (epic != null) {
-            id += 1;
-            subtask.setId(id);
-            epic.getSubtasks().add(subtask); // Подзадач в список подзадач эпика
-            subtaskMap.put(id, subtask); // Подазадча в мапу подзадач
-            epic.solveStartTimeAndDuration(); //Пересчет времени при добавлении подзадачи
+            subtask.setId(++id);
+            epic.getSubtasks().add(subtask);
+            subtaskMap.put(id, subtask);
+            solveStartTimeAndDuration(epic);
         }
         if (subtask.getStartTime() != null) {
-            prioritizedTasks.add(subtask);}}
+            prioritizedTasks.add(subtask);
+        }
+    }
 
-
+    @Override
     public Optional<Subtask> receiveSubtasksUseID(int subtaskId) {
         Optional<Subtask> particularSubtask = subtaskMap.values().stream().filter(subtask -> subtask.getId() == subtaskId).findFirst();
         if (particularSubtask.isPresent()) {
@@ -129,18 +132,17 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void deleteUseID(int id) {
         if (taskMap.containsKey(id)) {
-            prioritizedTasks.remove(taskMap.get(id));prioritizedTasks.remove(taskMap.get(id));
-            taskMap.remove(id, taskMap.get(id));
-            historyManagers.remove(id); //Удаление элемента из истории
+            prioritizedTasks.remove(taskMap.get(id));
+            taskMap.remove(id);
+            historyManagers.remove(id);
         }
     }
 
     @Override
     public Optional<Task> receiveOneTask(int id) {
-        return Optional.empty();
+        return Optional.ofNullable(taskMap.get(id));
     }
 
-    //Добавление вызванной задачи в историю
     @Override
     public List<Task> getAllTasks() {
         return new ArrayList<>(taskMap.values());
@@ -155,7 +157,6 @@ public class InMemoryTaskManager implements TaskManager {
     public List<Subtask> getAllSubtasks() {
         return new ArrayList<>(subtaskMap.values());
     }
-
     @Override
     public Subtask getSubtask(Integer id) {
         Subtask subtask = subtaskMap.get(id);

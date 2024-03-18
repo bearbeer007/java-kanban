@@ -14,7 +14,7 @@ public class Subtask extends Task {
         status = TaskStatus.NEW;
     }
 
-    public Subtask(String name, String description, long minutes, String startTime) {
+    public Subtask(String name, String description, Duration minutes, LocalDateTime startTime) {
         super(name, description, minutes, startTime);
         status = TaskStatus.NEW;
     }
@@ -48,7 +48,7 @@ public class Subtask extends Task {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, id, taskStatus, epicId);
+        return Objects.hash(name, description, id, epicId);
     }
 
     @Override

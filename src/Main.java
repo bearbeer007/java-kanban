@@ -13,7 +13,7 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
 
-
+/*
         List<Task> history;
         Task task1 = new Task("task 1", "пример простой задачи 1");
         Task task2 = new Task("task 2", "пример простой задачи 2");
