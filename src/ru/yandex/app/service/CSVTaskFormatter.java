@@ -3,80 +3,75 @@ package ru.yandex.app.service;
 
 import ru.yandex.app.model.*;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class CSVTaskFormatter {
+    private static final String DELIMITER = ",";
 
-    public static String toString(Task task) {
-        int id = task.getId();
-        String type = task.getTaskType().toString();
-        String name = task.getName();
-        TaskStatus status = task.getTaskStatus();
-        String description = task.getDescription();
-
-        String taskString = String.format("%s,%s,%s,%s,%s", id, type, name, status, description);
-
-        if (task.getTaskType() == TaskType.SUBTASK) {
-            taskString += ",";
-            if (task.getTaskType() == TaskType.SUBTASK) {
-                taskString += ((Subtask) task).getEpicId();
-            }
+    public String toString(Task task) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(task.getTaskId()).append(DELIMITER);
+        sb.append(task.getType()).append(DELIMITER);
+        sb.append(task.getName()).append(DELIMITER);
+        sb.append(task.getStatus()).append(DELIMITER);
+        sb.append(task.getDescription()).append(DELIMITER);
+        if (task.getType() == TaskType.SUBTASK) {
+            sb.append(((Subtask) task).getParentTaskId());
         }
-        return taskString;
+        sb.append(DELIMITER);
+        sb.append(task.getStartTime()).append(DELIMITER);
+        sb.append(task.getDuration()).append(DELIMITER);
+        sb.append(task.getEndTime());
+        return sb.toString();
     }
 
-    public static Task fromString(String value) {
-        String[] dataValues = value.split(",");
-        int id = Integer.parseInt(dataValues[0]);
-        TaskType taskType = TaskType.valueOf(dataValues[1]);
-        String name = dataValues[2];
-        TaskStatus status = TaskStatus.valueOf(dataValues[3]);
-        String description = dataValues[4];
-
-        switch (taskType) {
-            case TASK:
-                Task task = new Task(name, description);
-                task.setId(id);
-                task.setTaskStatus(status);
-                return task;
+    public Task fromString(String value) {
+        String[] values = value.split(DELIMITER);
+        int epicId = 0;
+        int taskId = Integer.parseInt(values[0]);
+        TaskType type = TaskType.valueOf(values[1]);
+        String name = values[2];
+        TaskStatus status = TaskStatus.valueOf(values[3]);
+        String description = values[4];
+        if (type.equals(TaskType.SUBTASK)) {
+            epicId = Integer.parseInt(values[5]);
+        }
+        LocalDateTime startTime = LocalDateTime.parse(values[6]);
+        Duration duration = Duration.parse(values[7]);
+        switch (type) {
             case EPIC:
-                Epic epic = new Epic(name, description);
-                epic.setId(id);
-                return epic;
+                return new Epic(taskId, name, description, status, startTime, duration);
             case SUBTASK:
-                Integer epicId = Integer.parseInt(dataValues[5]);
-                Subtask subtask = new Subtask(name, description, epicId);
-                subtask.setId(id);
-                subtask.setTaskStatus(status);
-                return subtask;
+                return new Subtask(taskId, name, description, epicId, status, startTime, duration);
             default:
-                throw new IllegalArgumentException("Неподдерживаемый task type" + taskType);
+                return new Task(taskId, name, description, status, startTime, duration);
         }
-
     }
 
-    public static String historyToString(HistoryManager historyManager) {
-        List<Task> historyData = historyManager.getHistory();
-        if (historyData != null) {
-            StringBuilder stringBuilder = new StringBuilder();
-            for (Task task : historyData) {
-                stringBuilder.append(task.getId()).append(",");
-            }
-            return String.valueOf(stringBuilder);
-        } else return "";
-    }
-
-    public static List<Integer> historyFromString(String value) {
-        List<Integer> historyList = new ArrayList<>();
-        if (!value.equals("")) {
-            String[] values = value.split(",");
-            for (String taskId : values) {
-                historyList.add(Integer.parseInt(taskId));
-            }
-            Collections.reverse(historyList);
+    public List<Integer> historyFromString(String value) {
+        List<Integer> history = new ArrayList<>();
+        if (value.isBlank() || value.isEmpty()) {
+            return history;
         }
-        return historyList;
+        String[] values = value.split(DELIMITER);
+        for (String task : values) {
+            history.add(Integer.parseInt(task));
+        }
+        return history;
     }
+
+    public String historyToString(HistoryManager manager) {
+        StringBuilder sb = new StringBuilder();
+        for (Task task : manager.getHistory()) {
+            sb.append(task.getTaskId()).append(DELIMITER);
+        }
+        if (!sb.toString().isEmpty()) {
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
+    }
+
 }

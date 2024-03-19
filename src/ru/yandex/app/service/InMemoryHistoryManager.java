@@ -5,30 +5,22 @@ import ru.yandex.app.model.Task;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class InMemoryHistoryManager implements HistoryManager {
-    private Node first;
-    private Node last;
-    private final HashMap<Integer, Node> indexTask = new HashMap<>();
-
-    private static class Node {
-        Task value;
-        Node prevTask;
-        Node nextTask;
-
-        Node(Task value) {
-            this.value = value;
-        }
-    }
+    private final Map<Integer, Node<Task>> tasksHistory = new HashMap<>();
+    private Node<Task> head;
+    private Node<Task> tail;
 
     @Override
     public void add(Task task) {
         if (task == null) {
             return;
         }
-        remove(task.getId());
-        Node node = linkLast(task);
-        indexTask.put(task.getId(), node);
+        if (tasksHistory.containsKey(task.getTaskId())) {
+            remove(task.getTaskId());
+        }
+        tasksHistory.put(task.getTaskId(), linkLast(task));
     }
 
     @Override
@@ -38,51 +30,48 @@ public class InMemoryHistoryManager implements HistoryManager {
 
     @Override
     public void remove(int id) {
-        if (indexTask.containsKey(id)) {
-            Node node = indexTask.get(id);
-            removeNode(node);
-            indexTask.remove(id);
+        if (tasksHistory.containsKey(id)) {
+            removeNode(tasksHistory.remove(id));
         }
     }
 
-    private Node linkLast(Task task) {
-        Node node = new Node(task);
-        if (first == null) {
-            first = node;
-            last = node;
-        } else {
-            node.prevTask = last;
-            last.nextTask = node;
-            last = node;
-        }
-        return node;
+    private Node<Task> linkLast(Task task) {
+        final Node<Task> oldTail = tail;
+        final Node<Task> newTask = new Node<>(tail, task, null);
+        tail = newTask;
+        if (oldTail == null)
+            head = newTask;
+        else
+            oldTail.next = newTask;
+        return newTask;
     }
 
     private List<Task> getTasks() {
-        ArrayList<Task> res = new ArrayList<>();
-        Node node = first;
-        while (node != null) {
-            res.add(node.value);
-            node = node.nextTask;
+        List<Task> tasks = new ArrayList<>();
+        Node<Task> task = head;
+
+        while (task != null) {
+            tasks.add(task.data);
+            task = task.next;
         }
-        return res;
+        return tasks;
     }
 
-    private void removeNode(Node node) {
-        if (node == null) return;
-        if (node == first) {
-            first = node.nextTask;
-        }
-        if (node == last) {
-            last = node.prevTask;
-        }
-        Node prev = node.prevTask;
-        Node next = node.nextTask;
-        if (prev != null) {
-            prev.nextTask = next;
-        }
-        if (next != null) {
-            next.prevTask = prev;
+    private void removeNode(Node<Task> node) {
+        Node<Task> prevNode = node.prev;
+        Node<Task> nextNode = node.next;
+        if (prevNode == null && nextNode == null) {
+            head = null;
+            tail = null;
+        } else if (prevNode == null) {
+            head = nextNode;
+            nextNode.prev = null;
+        } else if (nextNode == null) {
+            tail = prevNode;
+            prevNode.next = null;
+        } else {
+            prevNode.next = nextNode;
+            nextNode.prev = prevNode;
         }
     }
 }

@@ -5,57 +5,60 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class Task {
-
-    protected int id; // идентификатор задачи
-    protected String name; // название задачи
-    protected String description; // описание задачи
-    protected TaskStatus status = TaskStatus.NEW; // Статус задачи
-    protected Duration duration; // Продолжительность в минутах
-    protected LocalDateTime startTime; // Время начала задачи
-    private LocalDateTime endTime;
-
-    // конструкторы
+    protected int taskId;
+    protected String name;
+    protected String description;
+    protected TaskStatus status;
+    protected TaskType type;
+    protected Duration duration;
+    protected LocalDateTime startTime;
 
     public Task(String name, String description) {
-        this(name, description, null, null);
-    }
-
-    public Task(String name, String description, Duration duration, LocalDateTime startTime) {
         this.name = name;
         this.description = description;
-        this.duration = duration;
+        this.status = TaskStatus.NEW;
+        this.type = TaskType.TASK;
+    }
+
+    public Task(int taskId, String name, String description) {
+        this.taskId = taskId;
+        this.name = name;
+        this.description = description;
+        this.status = TaskStatus.NEW;
+        this.type = TaskType.TASK;
+    }
+
+    public Task(String name, String description, LocalDateTime startTime, Duration duration) {
+        this.name = name;
+        this.description = description;
+        this.status = TaskStatus.NEW;
+        this.type = TaskType.TASK;
         this.startTime = startTime;
+        this.duration = duration;
     }
 
-    // методы get и set
-
-    public LocalDateTime getStartTime() {
-        return startTime;
+    public Task(int taskId, String name, String description, LocalDateTime startTime, Duration duration) {
+        this.taskId = taskId;
+        this.name = name;
+        this.description = description;
+        this.status = TaskStatus.NEW;
+        this.type = TaskType.TASK;
+        this.startTime = startTime;
+        this.duration = duration;
     }
 
-    public void setEndTime(LocalDateTime endTime) {
-        if (startTime != null && duration != null) {
-            this.endTime = startTime.plus(duration);
-        } else {
-            this.endTime = endTime;
-        }
-    }
-
-
-    public Duration getDuration() {
-        return duration;
-    }
-
-    public LocalDateTime getEndTime() {
-        return (startTime != null && duration != null) ? startTime.plus(duration) : null;
+    public Task(int taskId, String name, String description, TaskStatus status, LocalDateTime startTime, Duration duration) {
+        this.taskId = taskId;
+        this.name = name;
+        this.description = description;
+        this.status = status;
+        this.type = TaskType.TASK;
+        this.startTime = startTime;
+        this.duration = duration;
     }
 
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getDescription() {
@@ -66,36 +69,59 @@ public class Task {
         this.description = description;
     }
 
-    public TaskStatus getTaskStatus() {
+    public int getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(int taskId) {
+        this.taskId = taskId;
+    }
+
+    public TaskStatus getStatus() {
         return status;
     }
 
-    public void setTaskStatus(TaskStatus taskStatus) {
-        this.status = taskStatus;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public TaskType getTaskType() {
-        return TaskType.TASK;
+    public TaskType getType() {
+        return type;
     }
 
     public void setStatus(TaskStatus status) {
         this.status = status;
     }
 
-    public void setDuration(Duration duration) {
-        this.duration = duration;
+    public LocalDateTime getEndTime() {
+        if (startTime == null) {
+            return null;
+        } else {
+            return startTime.plus(duration);
+        }
     }
 
     public void setStartTime(LocalDateTime startTime) {
         this.startTime = startTime;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setDuration(Duration duration) {
+        this.duration = duration;
+    }
+
+    public Duration getDuration() {
+        return duration;
+    }
+
+    @Override
+    public String toString() {
+        return "Task{" +
+                "ID=" + taskId +
+                ", Type='" + type + '\'' +
+                ", Name='" + name + '\'' +
+                ", Description='" + description + '\'' +
+                ", status='" + status + '\'' +
+                '}';
     }
 
     @Override
@@ -103,24 +129,11 @@ public class Task {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Task task = (Task) o;
-        return Objects.equals(name, task.name) &&
-                Objects.equals(description, task.description) &&
-                Objects.equals(id, task.id) &&
-                Objects.equals(status, task.status);
+        return taskId == task.taskId;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, id, status);
+        return Objects.hash(taskId);
     }
-
-    @Override
-    public String toString() {
-        return id + "," + "TASK," + name + "," + status + "," + description + ","
-                + ((duration != null) ? duration.toMinutes() : duration) + ","
-                + ((startTime != null) ? startTime.format(Constants.FORMATTER) + "," + getEndTime().format(Constants.FORMATTER)
-                : startTime + "," + getEndTime());
-    }
-
-
 }
