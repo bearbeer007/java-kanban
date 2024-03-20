@@ -19,8 +19,12 @@ public class InMemoryTaskManager implements TaskManager {
     protected final Map<Integer, Task> tasks = new HashMap<>();
     protected final Map<Integer, Epic> epics = new HashMap<>();
     protected final Map<Integer, Subtask> subtasks = new HashMap<>();
-    protected final Comparator<Task> comparator = Comparator.comparing(Task::getStartTime).thenComparing(Task::getEndTime);
+    protected final Comparator<Task> comparator = Comparator
+            .comparing(Task::getStartTime, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(Task::getEndTime, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparingInt(Task::getTaskId);
     protected final Set<Task> prioritizedTasks = new TreeSet<>(comparator);
+
 
     private int getNextId() {
         return ++taskId;
@@ -47,12 +51,14 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void removeAllTasks() {
         tasks.clear();
+        prioritizedTasks.clear();
     }
 
     @Override
     public void removeAllEpics() {
         subtasks.clear();
         epics.clear();
+        prioritizedTasks.clear();
     }
 
     @Override
@@ -65,6 +71,7 @@ public class InMemoryTaskManager implements TaskManager {
             setEndTimeEpic(parentId);
         }
         subtasks.clear();
+        prioritizedTasks.clear();
     }
 
     // 2.c  Получение по идентификатору.
@@ -287,6 +294,6 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public Set<Task> getPrioritizedTasks() {
-        return prioritizedTasks;
+        return new TreeSet<> (prioritizedTasks);
     }
 }

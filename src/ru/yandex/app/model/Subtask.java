@@ -1,6 +1,5 @@
 package ru.yandex.app.model;
 
-import java.util.Objects;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
@@ -10,7 +9,6 @@ public class Subtask extends Task {
     public Subtask(String name, String description, int parentTaskId, LocalDateTime startTime, Duration duration) {
         super(name, description, startTime, duration);
         this.status = TaskStatus.NEW;
-        this.type = TaskType.SUBTASK;
         this.parentTaskId = parentTaskId;
     }
 
@@ -18,7 +16,6 @@ public class Subtask extends Task {
         super(name, description, startTime, duration);
         this.taskId = taskId;
         this.status = TaskStatus.NEW;
-        this.type = TaskType.SUBTASK;
         this.parentTaskId = parentTaskId;
     }
 
@@ -26,7 +23,6 @@ public class Subtask extends Task {
         super(name, description, startTime, duration);
         this.taskId = taskId;
         this.status = status;
-        this.type = TaskType.SUBTASK;
         this.parentTaskId = parentTaskId;
     }
 
@@ -35,10 +31,14 @@ public class Subtask extends Task {
     }
 
     @Override
+    public TaskType getType() {
+        return TaskType.SUBTASK;
+    }
+
+    @Override
     public String toString() {
         return "Task{" +
                 "ID=" + taskId +
-                ", Type='" + type + '\'' +
                 ", Name='" + name + '\'' +
                 ", Description='" + description + '\'' +
                 ", status='" + status + '\'' +

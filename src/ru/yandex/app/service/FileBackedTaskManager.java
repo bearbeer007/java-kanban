@@ -10,9 +10,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
@@ -170,11 +168,20 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                     Task task = csvTaskFormatter.fromString(line);
                     TaskType type = task.getType();
                     if (type == TaskType.EPIC) {
-                        fileBackedTaskManager.epics.put(task.getTaskId(), (Epic) task);
+                        Epic epic = (Epic) task;
+                        fileBackedTaskManager.epics.put(epic.getTaskId(), epic);
+                        fileBackedTaskManager.prioritizedTasks.add(epic); // Добавление эпика в отсортированный список
                     } else if (type == TaskType.SUBTASK) {
-                        fileBackedTaskManager.subtasks.put(task.getTaskId(), (Subtask) task);
+                        Subtask subtask = (Subtask) task;
+                        fileBackedTaskManager.subtasks.put(subtask.getTaskId(), subtask);
+                        fileBackedTaskManager.prioritizedTasks.add(subtask); // Добавление подзадачи в отсортированный список
+                        Epic parentEpic = fileBackedTaskManager.epics.get(((Subtask) task).getParentTaskId());
+                        if (parentEpic != null) {
+                            parentEpic.addSubtaskId(subtask.getTaskId()); // Добавление подзадачи в список внутри эпика
+                        }
                     } else if (type == TaskType.TASK) {
                         fileBackedTaskManager.tasks.put(task.getTaskId(), task);
+                        fileBackedTaskManager.prioritizedTasks.add(task); // Добавление задачи в отсортированный список
                     }
                 }
             }
@@ -188,7 +195,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 }
             }
         } catch (IOException exception) {
-            System.out.println("Error reading from file.");
+            throw new ManagerSaveException("Error reading from file.", exception);
         }
         return fileBackedTaskManager;
     }

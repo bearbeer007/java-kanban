@@ -9,54 +9,40 @@ public class Task {
     protected String name;
     protected String description;
     protected TaskStatus status;
-    protected TaskType type;
     protected Duration duration;
     protected LocalDateTime startTime;
 
+    // Конструктор с двумя параметрами
     public Task(String name, String description) {
-        this.name = name;
-        this.description = description;
-        this.status = TaskStatus.NEW;
-        this.type = TaskType.TASK;
+        this(0, name, description, TaskStatus.NEW, null, null);
     }
 
+    // Конструктор с тремя параметрами
     public Task(int taskId, String name, String description) {
-        this.taskId = taskId;
-        this.name = name;
-        this.description = description;
-        this.status = TaskStatus.NEW;
-        this.type = TaskType.TASK;
+        this(taskId, name, description, TaskStatus.NEW, null, null);
     }
 
+    // Конструктор с пятью параметрами
     public Task(String name, String description, LocalDateTime startTime, Duration duration) {
-        this.name = name;
-        this.description = description;
-        this.status = TaskStatus.NEW;
-        this.type = TaskType.TASK;
-        this.startTime = startTime;
-        this.duration = duration;
+        this(0, name, description, TaskStatus.NEW, startTime, duration);
     }
 
+    // Конструктор с шестью параметрами
     public Task(int taskId, String name, String description, LocalDateTime startTime, Duration duration) {
-        this.taskId = taskId;
-        this.name = name;
-        this.description = description;
-        this.status = TaskStatus.NEW;
-        this.type = TaskType.TASK;
-        this.startTime = startTime;
-        this.duration = duration;
+        this(taskId, name, description, TaskStatus.NEW, startTime, duration);
     }
 
+    // Основной конструктор с полным набором параметров
     public Task(int taskId, String name, String description, TaskStatus status, LocalDateTime startTime, Duration duration) {
         this.taskId = taskId;
         this.name = name;
         this.description = description;
         this.status = status;
-        this.type = TaskType.TASK;
         this.startTime = startTime;
         this.duration = duration;
     }
 
+    // Геттеры и сеттеры
     public String getName() {
         return name;
     }
@@ -79,10 +65,6 @@ public class Task {
 
     public TaskStatus getStatus() {
         return status;
-    }
-
-    public TaskType getType() {
-        return type;
     }
 
     public void setStatus(TaskStatus status) {
@@ -113,14 +95,19 @@ public class Task {
         return duration;
     }
 
+    // Переопределенный метод getType()
+    public TaskType getType() {
+        return TaskType.TASK;
+    }
+
+    // Переопределенные методы toString(), equals() и hashCode()
     @Override
     public String toString() {
         return "Task{" +
                 "ID=" + taskId +
-                ", Type='" + type + '\'' +
                 ", Name='" + name + '\'' +
                 ", Description='" + description + '\'' +
-                ", status='" + status + '\'' +
+                ", Status='" + status + '\'' +
                 '}';
     }
 

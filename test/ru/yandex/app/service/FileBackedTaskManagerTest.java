@@ -82,4 +82,28 @@ public class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskMan
         assertEquals(0, testLoadFileBackedTaskManager.getAllSubTasks().size());
         assertEquals(0, testLoadFileBackedTaskManager.getHistory().size());
     }
+
+    @Test
+    public void shouldPreserveOrderAfterReload() throws IOException {
+        // Добавление задач в taskManager
+        Task task1 = new Task("Task 1", "Test task 1",
+                LocalDateTime.of(2024, 3, 5, 15, 0, 0), Duration.ofMinutes(30));
+        taskManager.addTask(task1);
+        Task task2 = new Task("Task 2", "Test task 2",
+                LocalDateTime.of(2024, 3, 6, 15, 0, 0), Duration.ofMinutes(30));
+        taskManager.addTask(task2);
+        // ... добавление других задач ...
+
+        // Получение и сохранение порядка задач до выгрузки
+        List<Task> originalOrder = new ArrayList<>(taskManager.getPrioritizedTasks());
+
+        // Выгрузка в файл и загрузка из файла
+        taskManager.save();
+        TaskManager loadedTaskManager = FileBackedTaskManager.loadFromFile(tmpFile);
+
+        // Получение и сравнение порядка задач после загрузки
+        List<Task> loadedOrder = new ArrayList<>(loadedTaskManager.getPrioritizedTasks());
+        assertEquals(originalOrder, loadedOrder, "The order of tasks should be preserved after reload.");
+    }
+
 }
