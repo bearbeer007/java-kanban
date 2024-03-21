@@ -21,7 +21,6 @@ public class InMemoryTaskManager implements TaskManager {
     protected final Map<Integer, Subtask> subtasks = new HashMap<>();
     protected final Comparator<Task> comparator = Comparator
             .comparing(Task::getStartTime, Comparator.nullsLast(Comparator.naturalOrder()))
-            .thenComparing(Task::getEndTime, Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparingInt(Task::getTaskId);
     protected final Set<Task> prioritizedTasks = new TreeSet<>(comparator);
 

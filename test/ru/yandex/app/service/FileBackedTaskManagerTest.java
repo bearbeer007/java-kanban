@@ -72,11 +72,7 @@ public class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskMan
     public void shouldReturnEmptyAfterLoadEmptyFile() throws IOException {
         File emptyFile = File.createTempFile("empty", ".csv");
         TaskManager testLoadFileBackedTaskManager;
-        try {
-            testLoadFileBackedTaskManager = FileBackedTaskManager.loadFromFile(emptyFile);
-        } catch (IOException exception) {
-            throw new ManagerSaveException("Error reading from file.", exception);
-        }
+        testLoadFileBackedTaskManager = FileBackedTaskManager.loadFromFile(emptyFile);
         assertEquals(0, testLoadFileBackedTaskManager.getAllTasks().size());
         assertEquals(0, testLoadFileBackedTaskManager.getAllEpics().size());
         assertEquals(0, testLoadFileBackedTaskManager.getAllSubTasks().size());
@@ -92,18 +88,19 @@ public class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskMan
         Task task2 = new Task("Task 2", "Test task 2",
                 LocalDateTime.of(2024, 3, 6, 15, 0, 0), Duration.ofMinutes(30));
         taskManager.addTask(task2);
-        // ... добавление других задач ...
-
-        // Получение и сохранение порядка задач до выгрузки
-        List<Task> originalOrder = new ArrayList<>(taskManager.getPrioritizedTasks());
-
-        // Выгрузка в файл и загрузка из файла
-        taskManager.save();
+        List<Task> originalTasks = new ArrayList<>(taskManager.getAllTasks());
+        List<Subtask> originalSubtasks = new ArrayList<>(taskManager.getAllSubtasks());
+        List<Project> originalProjects = new ArrayList<>(taskManager.getAllProjects());
+        // Загрузка taskManager из файла
         TaskManager loadedTaskManager = FileBackedTaskManager.loadFromFile(tmpFile);
-
-        // Получение и сравнение порядка задач после загрузки
-        List<Task> loadedOrder = new ArrayList<>(loadedTaskManager.getPrioritizedTasks());
-        assertEquals(originalOrder, loadedOrder, "The order of tasks should be preserved after reload.");
+        // Получение порядка задач из загруженного taskManager
+        List<Task> loadedTasks = new ArrayList<>(loadedTaskManager.getAllTasks());
+        List<Subtask> loadedSubtasks = new ArrayList<>(loadedTaskManager.getAllSubtasks());
+        List<Project> loadedProjects = new ArrayList<>(loadedTaskManager.getAllProjects());
+        // Проверка сохранения порядка для каждого списка
+        assertEquals(originalTasks, loadedTasks, "The order of tasks should be preserved after reload.");
+        assertEquals(originalSubtasks, loadedSubtasks, "The order of subtasks should be preserved after reload.");
+        assertEquals(originalProjects, loadedProjects, "The order of projects should be preserved after reload.");
     }
 
 }
