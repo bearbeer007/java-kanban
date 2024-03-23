@@ -1,55 +1,47 @@
 package ru.yandex.app.model;
 
-import java.util.Objects;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 public class Subtask extends Task {
-    private int epicId;
+    private final int parentTaskId;
 
-
-
-    public Subtask(String name, String description) {
-        super(name, description);
+    public Subtask(String name, String description, int parentTaskId, LocalDateTime startTime, Duration duration) {
+        super(name, description, startTime, duration);
+        this.status = TaskStatus.NEW;
+        this.parentTaskId = parentTaskId;
     }
 
-    public Subtask(String name, String description, int epicId) {
-        super(name, description);
-        this.epicId = epicId;
+    public Subtask(int taskId, String name, String description, int parentTaskId, LocalDateTime startTime, Duration duration) {
+        super(name, description, startTime, duration);
+        this.taskId = taskId;
+        this.status = TaskStatus.NEW;
+        this.parentTaskId = parentTaskId;
     }
 
-    public int getEpicId() {
-        return epicId;
+    public Subtask(int taskId, String name, String description, int parentTaskId, TaskStatus status, LocalDateTime startTime, Duration duration) {
+        super(name, description, startTime, duration);
+        this.taskId = taskId;
+        this.status = status;
+        this.parentTaskId = parentTaskId;
     }
 
-    public void setEpicId(int epicId) {
-        this.epicId = epicId;
+    public int getParentTaskId() {
+        return parentTaskId;
     }
 
     @Override
-    public TaskType getTaskType() {
+    public TaskType getType() {
         return TaskType.SUBTASK;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Subtask)) return false;
-        if (!super.equals(o)) return false;
-        Subtask subtask = (Subtask) o;
-        return getEpicId() == subtask.getEpicId();
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, description, id, taskStatus, epicId);
-    }
-
-    @Override
     public String toString() {
-        return "Подзадача (Subtask) {" +
-                "название='" + name + '\'' +
-                ", описание='" + description + '\'' +
-                ", id='" + id + '\'' +
-                ", статус='" + taskStatus + '\'' +
-                ", id эпика='" + epicId + '}' + '\'';
+        return "Task{" +
+                "ID=" + taskId +
+                ", Name='" + name + '\'' +
+                ", Description='" + description + '\'' +
+                ", status='" + status + '\'' +
+                ", EpicId=" + parentTaskId + '}';
     }
 }

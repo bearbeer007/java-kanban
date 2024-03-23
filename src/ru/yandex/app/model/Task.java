@@ -1,37 +1,50 @@
 package ru.yandex.app.model;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
-import static ru.yandex.app.model.TaskStatus.NEW;
-
 public class Task {
+    protected int taskId;
+    protected String name;
+    protected String description;
+    protected TaskStatus status;
+    protected Duration duration;
+    protected LocalDateTime startTime;
 
-    protected Integer id = 0;//идентификатор задачи
-    protected String name;//название задачи
-    protected String description;//описание задачи
-    protected TaskStatus taskStatus = NEW;
-
-    //конструкторы
-
-
+    // Конструктор с двумя параметрами
     public Task(String name, String description) {
-        this.name = name;
-        this.description = description;
+        this(0, name, description, TaskStatus.NEW, null, null);
     }
 
-    public Task(String name, String description, TaskStatus taskStatus) {
-        this.name = name;
-        this.description = description;
-        this.taskStatus = taskStatus;
+    // Конструктор с тремя параметрами
+    public Task(int taskId, String name, String description) {
+        this(taskId, name, description, TaskStatus.NEW, null, null);
     }
 
-    //методы get и set
+    // Конструктор с пятью параметрами
+    public Task(String name, String description, LocalDateTime startTime, Duration duration) {
+        this(0, name, description, TaskStatus.NEW, startTime, duration);
+    }
+
+    // Конструктор с шестью параметрами
+    public Task(int taskId, String name, String description, LocalDateTime startTime, Duration duration) {
+        this(taskId, name, description, TaskStatus.NEW, startTime, duration);
+    }
+
+    // Основной конструктор с полным набором параметров
+    public Task(int taskId, String name, String description, TaskStatus status, LocalDateTime startTime, Duration duration) {
+        this.taskId = taskId;
+        this.name = name;
+        this.description = description;
+        this.status = status;
+        this.startTime = startTime;
+        this.duration = duration;
+    }
+
+    // Геттеры и сеттеры
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getDescription() {
@@ -42,24 +55,60 @@ public class Task {
         this.description = description;
     }
 
-    public TaskStatus getTaskStatus() {
-        return taskStatus;
+    public int getTaskId() {
+        return taskId;
     }
 
-    public void setTaskStatus(TaskStatus taskStatus) {
-        this.taskStatus = taskStatus;
+    public void setTaskId(int taskId) {
+        this.taskId = taskId;
     }
 
-    public int getId() {
-        return id;
+    public TaskStatus getStatus() {
+        return status;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setStatus(TaskStatus status) {
+        this.status = status;
     }
 
-    public TaskType getTaskType() {
+    public LocalDateTime getEndTime() {
+        if (startTime == null) {
+            return null;
+        } else {
+            return startTime.plus(duration);
+        }
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setDuration(Duration duration) {
+        this.duration = duration;
+    }
+
+    public Duration getDuration() {
+        return duration;
+    }
+
+    // Переопределенный метод getType()
+    public TaskType getType() {
         return TaskType.TASK;
+    }
+
+    // Переопределенные методы toString(), equals() и hashCode()
+    @Override
+    public String toString() {
+        return "Task{" +
+                "ID=" + taskId +
+                ", Name='" + name + '\'' +
+                ", Description='" + description + '\'' +
+                ", Status='" + status + '\'' +
+                '}';
     }
 
     @Override
@@ -67,23 +116,11 @@ public class Task {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Task task = (Task) o;
-        return Objects.equals(name, task.name) &&
-                Objects.equals(description, task.description) &&
-                Objects.equals(id, task.id) &&
-                Objects.equals(taskStatus, task.taskStatus);
+        return taskId == task.taskId;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, id, taskStatus);
-    }
-
-    @Override
-    public String toString() {
-        return "Задача{" +
-                "название='" + name + '\'' +
-                ", описание='" + description + '\'' +
-                ", id='" + id + '\'' +
-                ", статус='" + taskStatus + '\'';
+        return Objects.hash(taskId);
     }
 }

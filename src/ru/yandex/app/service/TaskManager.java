@@ -6,100 +6,58 @@ import ru.yandex.app.model.Task;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 public interface TaskManager {
-    /**
-     * История просмотров задач, вернем последние 10 просмотренных задач
-     */
-    List<Task> getHistory();
-
-    /**
-     * добавим задачу
-     */
-    int addTask(Task task);
-
-    /**
-     * добавим эпик
-     */
-    int addEpic(Epic epic);
-
-    /**
-     * добавим подзадачу
-     */
-    int addSubtask(Subtask subtask);
-
-    /**
-     * методы обновления
-     * обновим задачу
-     */
-    int updateTask(Task task);
-
-    /**
-     * обновим эпик
-     */
-    int updateEpic(Epic epic);
-
-    /**
-     * получить задачу по id
-     */
-    Task getTask(Integer id);
-
-    /**
-     * список всех задачь
-     */
+    // 2. Методы для каждого из типа задач(Задача/Эпик/Подзадача):
+    // 2.a Получение списка всех задач.
     List<Task> getAllTasks();
 
-    /**
-     * список всех эпиков
-     */
     List<Epic> getAllEpics();
 
-    /**
-     * список всех подзадачь
-     */
-    List<Subtask> getAllSubtasks();
+    List<Subtask> getAllSubTasks();
 
-    /**
-     * получить подзадачу по id
-     */
-    Subtask getSubtask(Integer id);
+    // 2.b  Удаление всех задач.
+    void removeAllTasks();
 
-    /**
-     * получить эпик по id
-     */
-    Epic getEpic(Integer id);
+    void removeAllEpics();
 
-    /**
-     * метод получения всех подзадач эпика по его идентификатору
-     */
-    List<Subtask> getSubtasksByEpicId(int epicId);
+    void removeAllSubTasks();
 
-    /**
-     * удалим задачу
-     */
-    boolean removeTask(Integer id);
+    // 2.c  Получение по идентификатору.
+    Task getTaskByTaskId(int taskId);
 
-    /**
-     * удалим подзадачу
-     */
-    boolean removeSubtask(Integer id);
+    Epic getEpicByTaskId(int taskId);
 
-    boolean removeEpic(Integer id);
+    Subtask getSubTaskByTaskId(int taskId);
 
-    /**
-     * Удалим все подзадачи
-     * При удалении всех подзадач, удаление эпиков осуществлять - не требуется.
-     * Следует лишь пройтись по ним и почистить в них списки идентификаторов подзадач и обновить их статусы.
-     */
-    void removeAllSubtask();
+    // 2.d  Создание. Сам объект должен передаваться в качестве параметра.
+    int addTask(Task task);
 
-    void removeAllEpic();
+    int addEpic(Epic epic);
 
-    void removeAllTask();
+    int addSubTask(Subtask subtask);
 
-    List<Task> getPrintTaskMap();
+    // 2.e Обновление. Новая версия объекта с верным идентификатором передаётся в виде параметра.
+    int updateTask(Task task);
 
-    List<Epic> getPrintEpicMap();
+    int updateEpic(Epic epic);
 
-    List<Subtask> getPrintSubtaskMap();
+    int updateSubTask(Subtask subtask);
+
+    // 2.f Удаление по идентификатору.
+    void removeTaskById(int taskId);
+
+    void removeSubTaskById(int taskId);
+
+    void removeEpicById(int taskId);
+
+    // 3.a  Получение списка всех подзадач определённого эпика.
+    List<Subtask> getEpicSubtasks(int taskId);
+
+    List<Task> getHistory();
+
+    Set<Task> getPrioritizedTasks();
+
 }
