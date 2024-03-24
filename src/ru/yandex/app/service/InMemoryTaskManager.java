@@ -81,6 +81,13 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     @Override
+    public Epic getEpicById(int id) {
+        Epic epic = epics.get(id);
+        historyManager.add(epic);
+        return epic;
+    }
+
+    @Override
     public Epic getEpicByTaskId(int taskId) {
         historyManager.add(epics.get(taskId));
         return epics.get(taskId);
@@ -293,6 +300,6 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public Set<Task> getPrioritizedTasks() {
-        return new TreeSet<> (prioritizedTasks);
+        return new TreeSet<>(prioritizedTasks);
     }
 }
