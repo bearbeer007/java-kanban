@@ -32,21 +32,9 @@ public class EpicsHandlerTest {
             .registerTypeAdapter(LocalDateTime.class, new LocalDateAdapter())
             .create();
 
-    {
-        try {
-            tmpFile = File.createTempFile("data", ".csv");
-            taskManager = new FileBackedTaskManager(tmpFile);
-            taskServer = new HttpTaskServer(taskManager);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     @BeforeEach
     public void setUp() {
-        taskManager.deleteAllTasks();
-        taskManager.deleteAllSubtasks();
-        taskManager.deleteAllEpics();
         Task.setCount(0);
         taskServer.start();
     }
@@ -55,6 +43,9 @@ public class EpicsHandlerTest {
     public void shutDown() {
         taskServer.stop();
     }
+        taskManager.deleteAllTasks();
+        taskManager.deleteAllSubtasks();
+        taskManager.deleteAllEpics();
 
     @Test
     public void shouldReturnEpicEndpoint() throws IOException, InterruptedException {

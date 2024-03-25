@@ -2,11 +2,11 @@ package ru.yandex.app.http;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
 import com.sun.net.httpserver.HttpServer;
 import ru.yandex.app.http.adapters.DurationAdapter;
 import ru.yandex.app.http.adapters.LocalDateAdapter;
 import ru.yandex.app.http.handler.*;
+import ru.yandex.app.service.Managers;
 import ru.yandex.app.service.TaskManager;
 
 import java.io.IOException;
@@ -28,11 +28,11 @@ public class HttpTaskServer {
         gsonBuilder.registerTypeAdapter(LocalDateTime.class, new LocalDateAdapter());
         gson = gsonBuilder.create();
         this.server = HttpServer.create(new InetSocketAddress(PORT), 0);
-        server.createContext("/tasks", new TasksHandler(taskManager));
-        server.createContext("/subtasks", new SubtasksHandler(taskManager));
-        server.createContext("/epics", new EpicsHandler(taskManager));
-        server.createContext("/history", new HistoryHandler(taskManager));
-        server.createContext("/prioritized", new PrioritizedTasksHandler(taskManager));
+        server.createContext("/tasks", new TasksHandler(taskManager, Managers.getGson()));
+        server.createContext("/subtasks", new SubtasksHandler(taskManager, Managers.getGson()));
+        server.createContext("/epics", new EpicsHandler(taskManager, Managers.getGson()));
+        server.createContext("/history", new HistoryHandler(taskManager, Managers.getGson()));
+        server.createContext("/prioritized", new PrioritizedTasksHandler(taskManager, Managers.getGson()));
     }
 
     public void start() {
@@ -47,7 +47,6 @@ public class HttpTaskServer {
     public static Gson getGson() {
         return gson;
     }
-
 
 
 }

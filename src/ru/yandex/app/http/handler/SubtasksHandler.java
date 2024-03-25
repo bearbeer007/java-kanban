@@ -13,14 +13,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 
-public class SubtasksHandler implements HttpHandler {
-    private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
+public class SubtasksHandler extends AbstractHandler {
     private final TaskManager taskManager;
     private final Gson gson;
 
-    public SubtasksHandler(TaskManager taskManager) {
+    public SubtasksHandler(TaskManager taskManager, Gson gson) {
         this.taskManager = taskManager;
-        gson = HttpTaskServer.getGson();
+        this.gson = gson;
     }
 
     @Override
@@ -28,71 +27,73 @@ public class SubtasksHandler implements HttpHandler {
         try {
             String path = httpExchange.getRequestURI().toString();
             String requestMethod = httpExchange.getRequestMethod();
-            switch (requestMethod) {
-                case "GET": {
-                    if (Pattern.matches("^/subtasks$", path)) {
-                        String response = gson.toJson(taskManager.getAllSubTasks());
+
+            if (!requestMethod.equals("GET") && !requestMethod.equals("DELETE") && !requestMethod.equals("POST")) {
+                httpExchange.sendResponseHeaders(405, 0);
+                return;
+            }
+
+            if (requestMethod.equals("GET")) {
+                if (path.equals("/subtasks")) {
+                    String response = gson.toJson(taskManager.getAllSubTasks());
+                    sendText(httpExchange, response);
+                    return;
+                }
+
+                if (Pattern.matches("^/subtasks/\\d$", path)) {
+                    String[] pathId = path.split("/");
+                    int taskId = parsePathId(pathId[2]);
+                    if (taskId != -1) {
+                        String response = gson.toJson(taskManager.getSubTaskByTaskId(taskId));
                         sendText(httpExchange, response);
-                        break;
-                    }
-                    if (Pattern.matches("^/subtasks/\\d$", path)) {
-                        String[] pathId = path.split("/");
-                        int taskId = parsePathId(pathId[2]);
-                        if (taskId != -1) {
-                            String response = gson.toJson(taskManager.getSubTaskByTaskId(taskId));
-                            sendText(httpExchange, response);
-                        } else {
-                            httpExchange.sendResponseHeaders(404, 0);
-                        }
-                    } else {
-                        httpExchange.sendResponseHeaders(500, 0);
-                    }
-                    break;
-                }
-                case "DELETE": {
-                    if (Pattern.matches("^/subtasks$", path)) {
-                        taskManager.removeAllSubTasks();
-                        httpExchange.sendResponseHeaders(200, 0);
-                        break;
-                    }
-
-                    if (Pattern.matches("^/subtasks/\\d$", path)) {
-                        String[] pathId = path.split("/");
-                        int taskId = parsePathId(pathId[2]);
-                        if (taskId != -1) {
-                            taskManager.removeSubTaskById(taskId);
-                            httpExchange.sendResponseHeaders(200, 0);
-                        } else {
-                            httpExchange.sendResponseHeaders(404, 0);
-                        }
+                        return;
                     } else {
                         httpExchange.sendResponseHeaders(404, 0);
+                        return;
                     }
-                    break;
-                }
-                case "POST": {
-                    if (Pattern.matches("^/subtasks/\\d$", path)) {
-                        String body = readText(httpExchange);
-                        Subtask subtask = gson.fromJson(body, Subtask.class);
-                        taskManager.updateSubTask(subtask);
-                        httpExchange.sendResponseHeaders(201, 0);
-                        break;
-                    }
-
-                    if (Pattern.matches("^/subtasks$", path)) {
-                        String body = readText(httpExchange);
-                        Subtask subtask = gson.fromJson(body, Subtask.class);
-                        taskManager.addSubTask(subtask);
-                        httpExchange.sendResponseHeaders(201, 0);
-                    } else {
-                        httpExchange.sendResponseHeaders(404, 0);
-                    }
-                    break;
-                }
-                default: {
-                    System.out.println("invalid request method " + requestMethod);
                 }
             }
+
+            if (requestMethod.equals("DELETE")) {
+                if (path.equals("/subtasks")) {
+                    taskManager.removeAllSubTasks();
+                    httpExchange.sendResponseHeaders(200, 0);
+                    return;
+                }
+
+                if (Pattern.matches("^/subtasks/\\d$", path)) {
+                    String[] pathId = path.split("/");
+                    int taskId = parsePathId(pathId[2]);
+                    if (taskId != -1) {
+                        taskManager.removeSubTaskById(taskId);
+                        httpExchange.sendResponseHeaders(200, 0);
+                        return;
+                    } else {
+                        httpExchange.sendResponseHeaders(404, 0);
+                        return;
+                    }
+                }
+            }
+
+            if (requestMethod.equals("POST")) {
+                if (Pattern.matches("^/subtasks/\\d$", path)) {
+                    String body = readText(httpExchange);
+                    Subtask subtask = gson.fromJson(body, Subtask.class);
+                    taskManager.updateSubTask(subtask);
+                    httpExchange.sendResponseHeaders(201, 0);
+                    return;
+                }
+
+                if (path.equals("/subtasks")) {
+                    String body = readText(httpExchange);
+                    Subtask subtask = gson.fromJson(body, Subtask.class);
+                    taskManager.addSubTask(subtask);
+                    httpExchange.sendResponseHeaders(201, 0);
+                    return;
+                }
+            }
+
+            httpExchange.sendResponseHeaders(404, 0);
         } catch (Exception e) {
             httpExchange.sendResponseHeaders(404, 0);
         } finally {
@@ -100,22 +101,4 @@ public class SubtasksHandler implements HttpHandler {
         }
     }
 
-    private int parsePathId(String pathId) {
-        try {
-            return Integer.parseInt(pathId);
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
-
-    private void sendText(HttpExchange exchange, String text) throws IOException {
-        byte[] resp = text.getBytes();
-        exchange.getResponseHeaders().add("Content-Type", "application/json");
-        exchange.sendResponseHeaders(200, resp.length);
-        exchange.getResponseBody().write(resp);
-    }
-
-    protected String readText(HttpExchange exchange) throws IOException {
-        return new String(exchange.getRequestBody().readAllBytes(), DEFAULT_CHARSET);
-    }
 }

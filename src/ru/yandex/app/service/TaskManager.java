@@ -30,8 +30,6 @@ public interface TaskManager {
 
     Epic getEpicByTaskId(int taskId);
 
-    Epic getEpicById(int id);
-
     Subtask getSubTaskByTaskId(int taskId);
 
     // 2.d  Создание. Сам объект должен передаваться в качестве параметра.
@@ -60,6 +58,6 @@ public interface TaskManager {
 
     List<Task> getHistory();
 
-    Set<Task> getPrioritizedTasks();
+    List<Task> getPrioritizedTasks();
 
 }
