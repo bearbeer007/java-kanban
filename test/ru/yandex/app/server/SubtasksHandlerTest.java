@@ -1,18 +1,10 @@
-import adapters.DurationAdapter;
-import adapters.LocalDateAdapter;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import managers.FileBackedTaskManager;
-import managers.TaskManager;
-import models.Epic;
-import models.Subtask;
-import models.Task;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import http.HttpTaskServerTest;
 import org.junit.jupiter.api.Test;
+import tasks.Epic;
+import tasks.Status;
+import tasks.Subtask;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -22,191 +14,239 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class SubtasksHandlerTest {
-    File tmpFile;
-    TaskManager taskManager;
-    HttpTaskServer taskServer;
-    Gson gson = new GsonBuilder().registerTypeAdapter(Duration.class, new DurationAdapter())
-            .registerTypeAdapter(LocalDateTime.class, new LocalDateAdapter())
-            .create();
+class SubtasksHandlerTest extends HttpTaskServerTest {
+    String apiUrl = "http://localhost:8080/api/v1/subtasks";
 
-    {
+    SubtasksHandlerTest() throws IOException {
+    }
+
+    @Test
+    void postSubtask() {
+        Epic epic = new Epic("Test addNewEpicForSubtask", "Test addNewEpicForSubtask description");
+        final long epicId = taskManager.addEpic(epic);
+        Subtask subtask = new Subtask("Test addNewSubtask", "Test addNewSubtask description");
+        subtask.setStartTime(LocalDateTime.of(2022, 03, 01, 10, 00));
+        subtask.setDuration(Duration.ofMinutes(60));
+        subtask.setEpicId(epicId);
+
+        String taskJson = gson.toJson(subtask);
+        HttpClient client = HttpClient.newHttpClient();
+        URI url = URI.create(apiUrl);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(taskJson))
+                .build();
         try {
-            tmpFile = File.createTempFile("data", ".csv");
-            taskManager = new FileBackedTaskManager(tmpFile);
-            taskServer = new HttpTaskServer(taskManager);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(201, response.statusCode());
+            List<Subtask> subtasksFromManager = taskManager.getSubtasks();
+            assertNotNull(subtasksFromManager, "Подзадачи не возвращаются");
+            assertEquals(1, subtasksFromManager.size(), "Некорректное количество подзадач");
+            assertEquals("Test addNewSubtask", subtasksFromManager.get(0).getName(), "Некорректное имя подзадачи");
+        } catch (IOException | InterruptedException e) {
+            assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
+                    "Проверьте, пожалуйста, адрес и повторите попытку.");
         }
     }
 
-    @BeforeEach
-    public void setUp() {
-        taskManager.deleteAllTasks();
-        taskManager.deleteAllSubtasks();
-        taskManager.deleteAllEpics();
-        Task.setCount(0);
-        taskServer.start();
-    }
+    @Test
+    void updateSubtask() {
+        Epic epic = new Epic("Test addNewEpicForSubtask", "Test addNewEpicForSubtask description");
+        final long epicId = taskManager.addEpic(epic);
+        Subtask subtask = new Subtask("Тест", "Тестовое описание", LocalDateTime.now(), Duration.ofMinutes(5));
+        final Long subtaskId = taskManager.addSubtask(subtask, epicId);
 
-    @AfterEach
-    public void shutDown() {
-        taskServer.stop();
+        Subtask subtaskForUpdate = taskManager.getSubtask(subtaskId);
+        String newName = "New Name";
+        String newDescription = "New Description";
+        Status newStatus = Status.DONE;
+        LocalDateTime newStartTime = LocalDateTime.now().plusHours(1);
+        Duration newDuration = Duration.ofMinutes(60);
+        subtaskForUpdate.setName(newName);
+        subtaskForUpdate.setDescription(newDescription);
+        subtaskForUpdate.setStatus(newStatus);
+        subtaskForUpdate.setStartTime(newStartTime);
+        subtaskForUpdate.setDuration(newDuration);
+        String taskJson = gson.toJson(subtaskForUpdate);
+        HttpClient client = HttpClient.newHttpClient();
+        URI url = URI.create(apiUrl);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(taskJson))
+                .build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(201, response.statusCode(), response.body());
+            final Subtask updatedSubtask = taskManager.getSubtask(subtaskId);
+            assertEquals(newName, updatedSubtask.getName(), "Имя задачи не совпадает");
+            assertEquals(newDescription, updatedSubtask.getDescription(), "Описание задачи не совпадает");
+            assertEquals(newStatus, updatedSubtask.getStatus(), "Статус задачи не совпадает");
+            assertEquals(newStartTime, updatedSubtask.getStartTime(), "Дата начала задачи не совпадает");
+            assertEquals(newDuration, updatedSubtask.getDuration(), "Продолжительность задачи не совпадает");
+        } catch (IOException | InterruptedException e) {
+            assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
+                    "Проверьте, пожалуйста, адрес и повторите попытку.");
+        }
     }
 
     @Test
-    public void shouldReturnSubtaskEndpoint() throws IOException, InterruptedException {
-        Epic epic = new Epic("epic", "epicDescription");
-        Subtask subtask = new Subtask("subtask", "subtaskDescription", epic.getId(), LocalDateTime.of(2024, 3, 5, 20, 0), Duration.ofMinutes(10));
-        taskManager.createEpic(epic);
-        taskManager.createSubtask(subtask);
-        int subtaskId = subtask.getId();
+    void getSubtaskById() {
+        Epic epic = new Epic("Test addNewEpicForSubtask", "Test addNewEpicForSubtask description");
+        final long epicId = taskManager.addEpic(epic);
+        Subtask subtask = new Subtask("Test addNewSubtask", "Test addNewSubtask description");
+        subtask.setStartTime(LocalDateTime.of(2022, 03, 01, 10, 00));
+        subtask.setDuration(Duration.ofMinutes(60));
+        final long subtaskId = taskManager.addSubtask(subtask, epicId);
+
         HttpClient client = HttpClient.newHttpClient();
-        URI url = URI.create("http://localhost:8080/subtasks");
-        HttpRequest request = HttpRequest.newBuilder().uri(url).GET().build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(200, response.statusCode());
-
-        List<Subtask> subtasksFromManager = gson.fromJson(response.body(), new TypeToken<List<Subtask>>() {
-        }.getType());
-
-        Subtask subtaskFromManager = subtasksFromManager.get(0);
-        assertEquals(subtaskId, subtaskFromManager.getId(), "incorrect subtask id");
-        assertEquals(subtask.getName(), subtaskFromManager.getName(), "incorrect subtask name");
-        assertEquals(subtask.getDescription(), subtaskFromManager.getDescription(), "incorrect subtask description");
-        assertEquals(subtask.getDuration().toString(), subtaskFromManager.getDuration().toString(), "incorrect subtask description");
-        assertEquals(subtask.getStartTime().toString(), subtaskFromManager.getStartTime().toString(), "incorrect subtask description");
+        URI url = URI.create(apiUrl + "/" + subtaskId);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, response.statusCode());
+            final Subtask subtaskFromHttp = gson.fromJson(response.body(), new TypeToken<Subtask>() {
+            }.getType());
+            assertEquals(subtaskId, subtaskFromHttp.getId(), "Некорректный id подзадачи");
+            assertEquals("Test addNewSubtask", subtaskFromHttp.getName(), "Некорректное имя подзадачи");
+        } catch (IOException | InterruptedException e) {
+            assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
+                    "Проверьте, пожалуйста, адрес и повторите попытку.");
+        }
     }
 
     @Test
-    public void shouldReturnSubtasksIdEndpoint() throws IOException, InterruptedException {
-        Epic epic = new Epic("epic", "epicDescription");
-        Subtask subtask = new Subtask("subtask", "subtaskDescription", epic.getId(), LocalDateTime.of(2024, 3, 5, 20, 0), Duration.ofMinutes(10));
-        taskManager.createEpic(epic);
-        taskManager.createSubtask(subtask);
-        int subtaskId = subtask.getId();
+    void getSubtaskByWrongId() {
         HttpClient client = HttpClient.newHttpClient();
-        URI url = URI.create("http://localhost:8080/subtasks/" + subtask.getId());
-        HttpRequest request = HttpRequest.newBuilder().uri(url).GET().build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(200, response.statusCode());
-
-        Subtask subtaskFromManager = gson.fromJson(response.body(), new TypeToken<Subtask>() {
-        }.getType());
-
-        assertEquals(subtaskId, subtaskFromManager.getId(), "incorrect subtask id");
-        assertEquals(subtask.getName(), subtaskFromManager.getName(), "incorrect subtask name");
-        assertEquals(subtask.getDescription(), subtaskFromManager.getDescription(), "incorrect subtask description");
-        assertEquals(subtask.getDuration().toString(), subtaskFromManager.getDuration().toString(), "incorrect subtask duration");
-        assertEquals(subtask.getStartTime().toString(), subtaskFromManager.getStartTime().toString(), "incorrect subtask start time");
+        URI url = URI.create(apiUrl + "/5324542345234562");
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(404, response.statusCode());
+            assertEquals("Некорректный идентификатор подзадачи", response.body(), "Не верная ошибка при неправильном ID подзадачи");
+        } catch (IOException | InterruptedException e) {
+            assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
+                    "Проверьте, пожалуйста, адрес и повторите попытку.");
+        }
     }
 
     @Test
-    public void shouldReturn404ErrorWhenSubtaskNotFound() throws IOException, InterruptedException {
+    void getSubtaskWrongEndPoint() {
         HttpClient client = HttpClient.newHttpClient();
-        URI url = URI.create("http://localhost:8080/subtasks/1");
-        HttpRequest request = HttpRequest.newBuilder().uri(url).GET().build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(404, response.statusCode(), "incorrect statusCode");
-
+        URI url = URI.create(apiUrl + "/123456789/test");
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(404, response.statusCode());
+            assertEquals("Такого эндпоинта не существует", response.body(), "Не верная ошибка при неправильном ендпоинте");
+        } catch (IOException | InterruptedException e) {
+            assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
+                    "Проверьте, пожалуйста, адрес и повторите попытку.");
+        }
     }
 
     @Test
-    public void shouldCreateSubtaskWhenPostRequest() throws IOException, InterruptedException {
-        Epic epic = new Epic("epic", "epicDescription");
-        Subtask subtask = new Subtask("subtask", "subtaskDescription", epic.getId(), LocalDateTime.of(2024, 3, 5, 20, 0), Duration.ofMinutes(10));
-        taskManager.createEpic(epic);
+    void getSubtasks() {
+        Epic epic = new Epic("Test addNewEpicForSubtask", "Test addNewEpicForSubtask description");
+        final long epicId = taskManager.addEpic(epic);
+        Subtask subtask1 = new Subtask("Test addNewSubtask1", "Test addNewSubtask description1");
+        subtask1.setStartTime(LocalDateTime.of(2022, 03, 01, 10, 00));
+        subtask1.setDuration(Duration.ofMinutes(60));
+        taskManager.addSubtask(subtask1, epicId);
+        Subtask subtask2 = new Subtask("Test addNewSubtask2", "Test addNewSubtask description2");
+        subtask2.setStartTime(LocalDateTime.of(2022, 04, 01, 10, 00));
+        subtask2.setDuration(Duration.ofMinutes(60));
+        taskManager.addSubtask(subtask2, epicId);
 
-        String subtaskJson = gson.toJson(subtask);
         HttpClient client = HttpClient.newHttpClient();
-        URI url = URI.create("http://localhost:8080/subtasks");
-        HttpRequest request = HttpRequest.newBuilder().uri(url).POST(HttpRequest.BodyPublishers.ofString(subtaskJson)).build();
-
-        assertEquals(0, taskManager.getAllSubtasks().size(), "incorrect subtasks size before create");
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(201, response.statusCode());
-
-        List<Subtask> subtasksFromManager = taskManager.getAllSubtasks();
-        Subtask subtaskFromManager = subtasksFromManager.get(0);
-
-        assertNotNull(subtasksFromManager, "subtasks not return");
-        assertEquals(1, subtasksFromManager.size(), "incorrect num of subtasks");
-        assertEquals("subtask", subtaskFromManager.getName());
+        URI url = URI.create(apiUrl);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, response.statusCode());
+            final List<Subtask> subtasksFromHttp = gson.fromJson(response.body(), new TypeToken<List<Subtask>>() {
+            }.getType());
+            assertEquals(2, subtasksFromHttp.size(), "Некорректное количество подзадач");
+            assertEquals(true, subtasksFromHttp.contains(subtask1), "Подзадача отсутствует в возвращаемом списке задач");
+            assertEquals(true, subtasksFromHttp.contains(subtask2), "Подзадача отсутствует в возвращаемом списке задач");
+        } catch (IOException | InterruptedException e) {
+            assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
+                    "Проверьте, пожалуйста, адрес и повторите попытку.");
+        }
     }
 
     @Test
-    public void shouldUpdateSubtaskWhenPostRequest() throws IOException, InterruptedException {
-        Epic epic = new Epic("epic", "epicDescription");
-        Subtask subtask = new Subtask("subtask", "subtaskDescription", epic.getId(),
-                LocalDateTime.of(2024, 3, 3, 3, 3), Duration.ofMinutes(10));
-        taskManager.createEpic(epic);
-        subtask.setId(5);
-        taskManager.createSubtask(subtask);
-        int subtaskId = subtask.getId();
-        Task updateForSubtask = new Subtask("newName", "newDescription", epic.getId(),
-                LocalDateTime.of(2024, 4, 4, 4, 4), Duration.ofMinutes(10));
-        updateForSubtask.setId(5);
-        String subtaskJson = gson.toJson(updateForSubtask);
+    void addIntersectionsSubtasks() {
+        Epic epic = new Epic("Test addNewEpicForSubtask", "Test addNewEpicForSubtask description");
+        final long epicId = taskManager.addEpic(epic);
+        Subtask subtask1 = new Subtask("Тест1", "Тестовое описание1", LocalDateTime.now(), Duration.ofMinutes(50));
+        subtask1.setEpicId(epicId);
+        taskManager.addTask(subtask1);
+        Subtask subtask2 = new Subtask("Тест2", "Тестовое описание2", LocalDateTime.now(), Duration.ofMinutes(50));
+        subtask2.setEpicId(epicId);
+        String taskJson = gson.toJson(subtask2);
         HttpClient client = HttpClient.newHttpClient();
-        URI url = URI.create("http://localhost:8080/subtasks/" + subtaskId);
-        HttpRequest request = HttpRequest.newBuilder().uri(url).POST(HttpRequest.BodyPublishers.ofString(subtaskJson)).build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(201, response.statusCode());
-
-        Subtask subtaskFromManager = taskManager.getSubtaskById(5);
-
-        assertEquals("newName", subtaskFromManager.getName(), "incorrect update subtask name");
-        assertEquals("newDescription", subtaskFromManager.getDescription(), "incorrect update subtask description");
+        URI url = URI.create(apiUrl);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(taskJson))
+                .build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(406, response.statusCode());
+            assertEquals("Задачи пересекаются!", response.body(), "Не верная ошибка при пересекающихся задачах");
+        } catch (IOException | InterruptedException e) {
+            assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
+                    "Проверьте, пожалуйста, адрес и повторите попытку.");
+        }
     }
 
     @Test
-    public void shouldDeleteSubtaskIdWhenDeleteRequest() throws IOException, InterruptedException {
-        Epic epic = new Epic("epic", "epicDescription");
-        Subtask subtask = new Subtask("subtask", "subtaskDescription", epic.getId(),
-                LocalDateTime.of(2024, 3, 3, 3, 3), Duration.ofMinutes(10));
-        taskManager.createEpic(epic);
-        taskManager.createSubtask(subtask);
+    void deleteSubtask() {
+        Epic epic = new Epic("Test addNewEpicForSubtask", "Test addNewEpicForSubtask description");
+        final long epicId = taskManager.addEpic(epic);
+        Subtask subtask = new Subtask("Test addNewSubtask", "Test addNewSubtask description");
+        subtask.setStartTime(LocalDateTime.of(2022, 03, 01, 10, 00));
+        subtask.setDuration(Duration.ofMinutes(60));
+        final long subtaskId = taskManager.addSubtask(subtask, epicId);
+
         HttpClient client = HttpClient.newHttpClient();
-        URI url = URI.create("http://localhost:8080/subtasks/" + subtask.getId());
-        HttpRequest request = HttpRequest.newBuilder().uri(url).DELETE().build();
-
-        assertEquals(1, taskManager.getAllSubtasks().size(), "incorrect subtasks size before delete");
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(200, response.statusCode());
-        assertEquals(0, taskManager.getAllSubtasks().size(), "incorrect subtasks size after delete");
-    }
-
-    @Test
-    public void shouldDeleteSubtasksWhenDeleteRequest() throws IOException, InterruptedException {
-        Epic epic = new Epic("epic", "epicDescription");
-        Subtask subtask = new Subtask("subtask", "subtaskDescription", epic.getId(),
-                LocalDateTime.of(2024, 3, 3, 3, 3), Duration.ofMinutes(10));
-        Subtask subtask2 = new Subtask("subtask2", "subtaskDescription2", epic.getId(),
-                LocalDateTime.of(2024, 4, 4, 4, 4), Duration.ofMinutes(10));
-        taskManager.createEpic(epic);
-        taskManager.createSubtask(subtask);
-        taskManager.createSubtask(subtask2);
-        HttpClient client = HttpClient.newHttpClient();
-        URI url = URI.create("http://localhost:8080/subtasks");
-        HttpRequest request = HttpRequest.newBuilder().uri(url).DELETE().build();
-
-        assertEquals(2, taskManager.getAllSubtasks().size(), "incorrect subtasks size before delete");
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(200, response.statusCode());
-        assertEquals(0, taskManager.getAllSubtasks().size(), "incorrect subtasks size after delete");
+        URI url = URI.create(apiUrl + "/" + subtaskId);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Accept", "application/json")
+                .DELETE()
+                .build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, response.statusCode());
+            List<Subtask> subtasksFromManager = taskManager.getSubtasks();
+            assertNotNull(subtasksFromManager, "Задачи не возвращаются");
+            assertEquals(0, subtasksFromManager.size(), "Некорректное количество задач");
+        } catch (IOException | InterruptedException e) {
+            assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
+                    "Проверьте, пожалуйста, адрес и повторите попытку.");
+        }
     }
 }

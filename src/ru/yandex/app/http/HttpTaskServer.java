@@ -28,11 +28,11 @@ public class HttpTaskServer {
         gsonBuilder.registerTypeAdapter(LocalDateTime.class, new LocalDateAdapter());
         gson = gsonBuilder.create();
         this.server = HttpServer.create(new InetSocketAddress(PORT), 0);
-        server.createContext("/tasks", new TasksHandler(taskManager, Managers.getGson()));
-        server.createContext("/subtasks", new SubtasksHandler(taskManager, Managers.getGson()));
-        server.createContext("/epics", new EpicsHandler(taskManager, Managers.getGson()));
-        server.createContext("/history", new HistoryHandler(taskManager, Managers.getGson()));
-        server.createContext("/prioritized", new PrioritizedTasksHandler(taskManager, Managers.getGson()));
+        server.createContext("/tasks", new TasksHandler(taskManager, Managers.createGson()));
+        server.createContext("/subtasks", new SubtasksHandler(taskManager, Managers.createGson()));
+        server.createContext("/epics", new EpicsHandler(taskManager, Managers.createGson()));
+        server.createContext("/history", new HistoryHandler(taskManager, Managers.createGson()));
+        server.createContext("/prioritized", new PrioritizedTasksHandler(taskManager, Managers.createGson()));
     }
 
     public void start() {

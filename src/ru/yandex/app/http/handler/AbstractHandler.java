@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-public class AbstractHandler implements HttpHandler {
+abstract class AbstractHandler implements HttpHandler {
     protected static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
     protected int parsePathId(String pathId) {
@@ -29,7 +29,5 @@ public class AbstractHandler implements HttpHandler {
         return new String(exchange.getRequestBody().readAllBytes(), DEFAULT_CHARSET);
     }
 
-    @Override
-    public void handle(HttpExchange httpExchange) throws IOException {
-    }
+
 }

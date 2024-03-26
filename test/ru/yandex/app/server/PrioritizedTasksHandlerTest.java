@@ -1,16 +1,8 @@
-import adapters.DurationAdapter;
-import adapters.LocalDateAdapter;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import managers.FileBackedTaskManager;
-import managers.TaskManager;
-import models.Task;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import http.HttpTaskServerTest;
 import org.junit.jupiter.api.Test;
+import tasks.Task;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -18,66 +10,63 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Set;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class PrioritizedTasksHandlerTest {
-    File tmpFile;
-    TaskManager taskManager;
-    HttpTaskServer taskServer;
-    Gson gson = new GsonBuilder().registerTypeAdapter(Duration.class, new DurationAdapter())
-            .registerTypeAdapter(LocalDateTime.class, new LocalDateAdapter())
-            .create();
+class PrioritizedHandlerTest extends HttpTaskServerTest {
+    String apiUrl = "http://localhost:8080/api/v1/prioritized";
 
-    {
-        try {
-            tmpFile = File.createTempFile("data", ".csv");
-            taskManager = new FileBackedTaskManager(tmpFile);
-            taskServer = new HttpTaskServer(taskManager);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @BeforeEach
-    public void setUp() {
-        taskManager.deleteAllTasks();
-        taskManager.deleteAllSubtasks();
-        taskManager.deleteAllEpics();
-        Task.setCount(0);
-        taskServer.start();
-    }
-
-    @AfterEach
-    public void shutDown() {
-        taskServer.stop();
+    PrioritizedHandlerTest() throws IOException {
     }
 
     @Test
-    public void shouldReturnPrioritizedTasks() throws IOException, InterruptedException {
-        Task task1 = new Task("task1", "taskDescription1", Duration.ofMinutes(5),
-                LocalDateTime.of(2024, 3, 5, 0, 0));
-        Task task2 = new Task("task1", "taskDescription1",
-                Duration.ofMinutes(10), LocalDateTime.of(2024, 1, 5, 0, 0));
-        Task task3 = new Task("task1", "taskDescription1",
-                Duration.ofMinutes(15), LocalDateTime.of(2024, 2, 5, 0, 0));
-        taskManager.createTask(task1);
-        taskManager.createTask(task2);
-        taskManager.createTask(task3);
+    void getPrioritized() {
+        Task task1 = new Task("Тест1", "Тестовое описание1", LocalDateTime.now(), Duration.ofMinutes(5));
+        Long taskId1 = taskManager.addTask(task1);
+        Task task2 = new Task("Тест2", "Тестовое описание2", LocalDateTime.now().plusHours(1), Duration.ofMinutes(5));
+        Long taskId2 = taskManager.addTask(task2);
+        taskManager.getTask(taskId1);
+        taskManager.getTask(taskId2);
 
         HttpClient client = HttpClient.newHttpClient();
-        URI url = URI.create("http://localhost:8080/prioritized");
-        HttpRequest request = HttpRequest.newBuilder().uri(url).GET().build();
+        URI url = URI.create(apiUrl);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, response.statusCode());
+            final List<Task> tasksFromHttp = gson.fromJson(response.body(), new TypeToken<List<Task>>() {
+            }.getType());
+            assertEquals(2, tasksFromHttp.size(), "Некорректное количество задач");
+            assertEquals(true, tasksFromHttp.contains(task1), "Задача отсутствует в возвращаемом списке задач");
+            assertEquals(true, tasksFromHttp.contains(task2), "Задача отсутствует в возвращаемом списке задач");
+        } catch (IOException | InterruptedException e) {
+            assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
+                    "Проверьте, пожалуйста, адрес и повторите попытку.");
+        }
+    }
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(200, response.statusCode());
-
-        Set<Task> tasksFromManager = gson.fromJson(response.body(), new TypeToken<Set<Task>>() {
-        }.getType());
-
-        assertNotNull(tasksFromManager, "prioritized task is empty");
-        assertEquals(3, tasksFromManager.size(), "incorrect size of prioritized tasks");
+    @Test
+    void getPrioritizedWrongEndPoint() {
+        HttpClient client = HttpClient.newHttpClient();
+        URI url = URI.create(apiUrl + "/123456789/test");
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(404, response.statusCode());
+            assertEquals("Такого эндпоинта не существует", response.body(), "Не верная ошибка при неправильном ендпоинте");
+        } catch (IOException | InterruptedException e) {
+            assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
+                    "Проверьте, пожалуйста, адрес и повторите попытку.");
+        }
     }
 }
