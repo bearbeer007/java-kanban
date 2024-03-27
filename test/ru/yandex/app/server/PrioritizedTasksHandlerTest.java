@@ -1,7 +1,7 @@
+package ru.yandex.app.server;
 import com.google.gson.reflect.TypeToken;
-import http.HttpTaskServerTest;
 import org.junit.jupiter.api.Test;
-import tasks.Task;
+import ru.yandex.app.model.Task;
 
 import java.io.IOException;
 import java.net.URI;
@@ -24,11 +24,11 @@ class PrioritizedHandlerTest extends HttpTaskServerTest {
     @Test
     void getPrioritized() {
         Task task1 = new Task("Тест1", "Тестовое описание1", LocalDateTime.now(), Duration.ofMinutes(5));
-        Long taskId1 = taskManager.addTask(task1);
+        int taskId1 = taskManager.addTask(task1);
         Task task2 = new Task("Тест2", "Тестовое описание2", LocalDateTime.now().plusHours(1), Duration.ofMinutes(5));
-        Long taskId2 = taskManager.addTask(task2);
-        taskManager.getTask(taskId1);
-        taskManager.getTask(taskId2);
+        int taskId2 = taskManager.addTask(task2);
+        taskManager.getTaskByTaskId(taskId1);
+        taskManager.getTaskByTaskId(taskId2);
 
         HttpClient client = HttpClient.newHttpClient();
         URI url = URI.create(apiUrl);

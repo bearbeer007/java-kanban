@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-abstract class AbstractHandler implements HttpHandler {
+public abstract class AbstractHandler implements HttpHandler {
     protected static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
     protected int parsePathId(String pathId) {

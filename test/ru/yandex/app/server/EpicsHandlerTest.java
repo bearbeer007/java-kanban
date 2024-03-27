@@ -1,8 +1,9 @@
+package ru.yandex.app.server;
+
 import com.google.gson.reflect.TypeToken;
-import http.HttpTaskServerTest;
 import org.junit.jupiter.api.Test;
-import tasks.Epic;
-import tasks.Subtask;
+import ru.yandex.app.model.Epic;
+import ru.yandex.app.model.Subtask;
 
 import java.io.IOException;
 import java.net.URI;
@@ -36,7 +37,7 @@ class EpicsHandlerTest extends HttpTaskServerTest {
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             assertEquals(201, response.statusCode());
-            List<Epic> epicsFromManager = taskManager.getEpics();
+            List<Epic> epicsFromManager = taskManager.getAllEpics();
             assertNotNull(epicsFromManager, "Эпики не возвращаются");
             assertEquals(1, epicsFromManager.size(), "Некорректное количество эпиков");
             assertEquals("Test addNewEpic", epicsFromManager.get(0).getName(), "Некорректное имя эпика");
@@ -49,12 +50,11 @@ class EpicsHandlerTest extends HttpTaskServerTest {
     @Test
     void updateEpic() {
         Epic epic = new Epic("Тест", "Тестовое описание");
-        final Long epicId = taskManager.addEpic(epic);
+        final int epicId = taskManager.addEpic(epic);
 
-        Epic epicForUpdate = taskManager.getEpic(epicId);
+        Epic epicForUpdate = taskManager.getEpicByTaskId(epicId);
         String newName = "New Name";
         String newDescription = "New Description";
-        epicForUpdate.setName(newName);
         epicForUpdate.setDescription(newDescription);
         String taskJson = gson.toJson(epicForUpdate);
         HttpClient client = HttpClient.newHttpClient();
@@ -67,7 +67,7 @@ class EpicsHandlerTest extends HttpTaskServerTest {
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             assertEquals(201, response.statusCode(), response.body());
-            final Epic updatedEpic = taskManager.getEpic(epicId);
+            final Epic updatedEpic = taskManager.getEpicByTaskId(epicId);
             assertEquals(newName, updatedEpic.getName(), "Имя задачи не совпадает");
             assertEquals(newDescription, updatedEpic.getDescription(), "Описание задачи не совпадает");
         } catch (IOException | InterruptedException e) {
@@ -94,7 +94,7 @@ class EpicsHandlerTest extends HttpTaskServerTest {
 
             final Epic epicFromHttp = gson.fromJson(response.body(), new TypeToken<Epic>() {
             }.getType());
-            assertEquals(epicId, epicFromHttp.getId(), "Некорректный id эпика");
+            assertEquals(epicId, epicFromHttp.getTaskId(), "Некорректный id эпика");
             assertEquals("Test addNewEpic", epicFromHttp.getName(), "Некорректное имя эпика");
         } catch (IOException | InterruptedException e) {
             assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
@@ -169,17 +169,13 @@ class EpicsHandlerTest extends HttpTaskServerTest {
     }
 
     @Test
-    void getEpicSubtasks() {
+    void getEpicSubtasks() throws IOException, InterruptedException {
         Epic epic = new Epic("Test addNewEpicForSubtask", "Test addNewEpicForSubtask description");
-        final long epicId = taskManager.addEpic(epic);
-        Subtask subtask1 = new Subtask("Test addNewSubtask1", "Test addNewSubtask description1");
-        subtask1.setStartTime(LocalDateTime.of(2022, 03, 01, 10, 00));
-        subtask1.setDuration(Duration.ofMinutes(60));
-        taskManager.addSubtask(subtask1, epicId);
-        Subtask subtask2 = new Subtask("Test addNewSubtask2", "Test addNewSubtask description2");
-        subtask2.setStartTime(LocalDateTime.of(2022, 04, 01, 10, 00));
-        subtask2.setDuration(Duration.ofMinutes(60));
-        taskManager.addSubtask(subtask2, epicId);
+        final int epicId = taskManager.addEpic(epic);
+        Subtask subtask1 = new Subtask("Test addNewSubtask1", "Test addNewSubtask description1",epicId,LocalDateTime.of(2022, 03, 01, 10, 00),Duration.ofMinutes(60));
+        taskManager.addSubTask(subtask1);
+        Subtask subtask2 = new Subtask("Test addNewSubtask2", "Test addNewSubtask description1",epicId,LocalDateTime.of(2022, 03, 01, 10, 00),Duration.ofMinutes(60));
+        taskManager.addSubTask(subtask2);
 
         HttpClient client = HttpClient.newHttpClient();
         URI url = URI.create(apiUrl + "/" + epicId + "/subtasks");
@@ -188,7 +184,7 @@ class EpicsHandlerTest extends HttpTaskServerTest {
                 .header("Accept", "application/json")
                 .GET()
                 .build();
-        try {
+
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             assertEquals(200, response.statusCode());
             final List<Subtask> subtasksFromHttp = gson.fromJson(response.body(), new TypeToken<List<Subtask>>() {
@@ -196,14 +192,13 @@ class EpicsHandlerTest extends HttpTaskServerTest {
             assertEquals(2, subtasksFromHttp.size(), "Некорректное количество подзадач");
             assertEquals(true, subtasksFromHttp.contains(subtask1), "Подзадача отсутствует в возвращаемом списке задач");
             assertEquals(true, subtasksFromHttp.contains(subtask2), "Подзадача отсутствует в возвращаемом списке задач");
-        } catch (IOException | InterruptedException e) {
             assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
                     "Проверьте, пожалуйста, адрес и повторите попытку.");
-        }
+
     }
 
     @Test
-    void deleteEpic() {
+    void deleteEpic() throws IOException, InterruptedException {
         Epic epic = new Epic("Test addNewEpicForSubtask", "Test addNewEpicForSubtask description");
         final long epicId = taskManager.addEpic(epic);
 
@@ -214,15 +209,14 @@ class EpicsHandlerTest extends HttpTaskServerTest {
                 .header("Accept", "application/json")
                 .DELETE()
                 .build();
-        try {
+
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             assertEquals(200, response.statusCode());
-            List<Epic> epicsFromManager = taskManager.getEpics();
+            List<Epic> epicsFromManager = taskManager.getAllEpics();
             assertNotNull(epicsFromManager, "Эпики не возвращаются");
             assertEquals(0, epicsFromManager.size(), "Некорректное количество эпиков");
-        } catch (IOException | InterruptedException e) {
             assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
                     "Проверьте, пожалуйста, адрес и повторите попытку.");
-        }
+
     }
 }

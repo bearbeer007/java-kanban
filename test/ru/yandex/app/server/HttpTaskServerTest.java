@@ -1,15 +1,18 @@
+package ru.yandex.app.server;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import managers.InMemoryTaskManager;
-import managers.TaskManager;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import tasks.Task;
+import ru.yandex.app.http.HttpTaskServer;
+import ru.yandex.app.model.Task;
+import ru.yandex.app.service.InMemoryTaskManager;
+import ru.yandex.app.service.TaskManager;
 
-import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -24,12 +27,10 @@ public class HttpTaskServerTest {
     public HttpTaskServer httpTaskServer = new HttpTaskServer(taskManager);
     public Gson gson;
 
-    public HttpTaskServerTest() throws IOException {
-    }
+
 
     @BeforeEach
     public void setUp() {
-        taskManager.deleteAllTypesTasks();
         gson = HttpTaskServer.getGson();
         httpTaskServer.start();
     }
@@ -55,16 +56,15 @@ public class HttpTaskServerTest {
                 .header("Accept", "application/json")
                 .GET()
                 .build();
-        try {
+
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             assertEquals(200, response.statusCode());
             final List<Task> listFromHttp = gson.fromJson(response.body(), new TypeToken<List<Task>>() {
             }.getType());
             assertEquals(0, listFromHttp.size(), "Некорректное количество задач");
-        } catch (IOException | InterruptedException e) {
             assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
                     "Проверьте, пожалуйста, адрес и повторите попытку.");
-        }
+
     }
 
     @Test

@@ -1,7 +1,8 @@
+package ru.yandex.app.server;
+
 import com.google.gson.reflect.TypeToken;
-import http.HttpTaskServerTest;
 import org.junit.jupiter.api.Test;
-import tasks.Task;
+import ru.yandex.app.model.Task;
 
 import java.io.IOException;
 import java.net.URI;
@@ -22,13 +23,13 @@ class HistoryHandlerTest extends HttpTaskServerTest {
     }
 
     @Test
-    void getHistory() {
+    void getHistory() throws IOException, InterruptedException {
         Task task1 = new Task("Тест1", "Тестовое описание1", LocalDateTime.now(), Duration.ofMinutes(5));
-        Long taskId1 = taskManager.addTask(task1);
+        int taskId1 = taskManager.addTask(task1);
         Task task2 = new Task("Тест2", "Тестовое описание2", LocalDateTime.now().plusHours(1), Duration.ofMinutes(5));
-        Long taskId2 = taskManager.addTask(task2);
-        taskManager.getTask(taskId1);
-        taskManager.getTask(taskId2);
+        int taskId2 = taskManager.addTask(task2);
+        taskManager.getTaskByTaskId(taskId1);
+        taskManager.getTaskByTaskId(taskId2);
 
         HttpClient client = HttpClient.newHttpClient();
         URI url = URI.create(apiUrl);
@@ -37,7 +38,7 @@ class HistoryHandlerTest extends HttpTaskServerTest {
                 .header("Accept", "application/json")
                 .GET()
                 .build();
-        try {
+
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             assertEquals(200, response.statusCode());
             final List<Task> tasksFromHttp = gson.fromJson(response.body(), new TypeToken<List<Task>>() {
@@ -45,14 +46,12 @@ class HistoryHandlerTest extends HttpTaskServerTest {
             assertEquals(2, tasksFromHttp.size(), "Некорректное количество задач в истории");
             assertEquals(true, tasksFromHttp.contains(task1), "Задача отсутствует в возвращаемом списке задач в истории");
             assertEquals(true, tasksFromHttp.contains(task2), "Задача отсутствует в возвращаемом списке задач в истории");
-        } catch (IOException | InterruptedException e) {
             assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
                     "Проверьте, пожалуйста, адрес и повторите попытку.");
-        }
     }
 
     @Test
-    void getHistoryWrongEndPoint() {
+    void getHistoryWrongEndPoint() throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
         URI url = URI.create(apiUrl + "/123456789/test");
         HttpRequest request = HttpRequest.newBuilder()
@@ -60,13 +59,10 @@ class HistoryHandlerTest extends HttpTaskServerTest {
                 .header("Accept", "application/json")
                 .GET()
                 .build();
-        try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             assertEquals(404, response.statusCode());
             assertEquals("Такого эндпоинта не существует", response.body(), "Не верная ошибка при неправильном ендпоинте");
-        } catch (IOException | InterruptedException e) {
             assertNotNull(null, "Во время выполнения запроса ресурса по URL-адресу: '" + url + "' возникла ошибка.\n" +
                     "Проверьте, пожалуйста, адрес и повторите попытку.");
-        }
     }
 }
